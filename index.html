@@ -378,7 +378,7 @@ let DB=null, UID=null, SAMPLE=null, saveTimer=null;
 function lsGet(){try{const t=localStorage.getItem(LSKEY);return t?JSON.parse(t):null}catch(e){return null}}
 function lsSet(o){try{localStorage.setItem(LSKEY,JSON.stringify(o))}catch(e){}}
 function merge(o){const f=fresh();return Object.assign(f,o,{settings:Object.assign(f.settings,o.settings||{}),doneToday:o.doneToday||f.doneToday})}
-function save(){S.updatedAt=Date.now();lsSet(S);clearTimeout(saveTimer);saveTimer=setTimeout(pushDB,1200)}
+function save(){S.updatedAt=Date.now();lsSet(S);clearTimeout(saveTimer);saveTimer=setTimeout(pushDB,1200);if(typeof scheduleSync==="function")scheduleSync()}
 async function pushDB(){if(!DB||!UID)return;try{await DB.doc("data/users/"+UID+"/progress").set(JSON.parse(JSON.stringify(S)))}catch(e){if(e&&e.code==="quota_exceeded")toast("保存容量がいっぱいです")}}
 async function initStore(){
   try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
@@ -441,7 +441,7 @@ const IV=[0,1,3,7,14,30,60];
 function rateCard(key,r){const c=S.srs[key]||{b:0,d:today()};
   if(r===0){c.b=0;c.d=today()}else if(r===1){c.b=Math.max(1,c.b);c.d=addDays(today(),1)}else{c.b=Math.min(6,c.b+1);c.d=addDays(today(),IV[c.b])}
   S.srs[key]=c}
-function cardFromKey(k){const iv=k.match(/^i(\d)-(\d+)$/);if(iv)return introCard(+iv[1],+iv[2]);const n=k.match(/^n([a-z0-9]+)-([svgf])-(\d+)$/);if(n)return noteCard(n[1],n[2],+n[3]);const m=k.match(/^([vs])(\d+)-(\d+)$/);if(!m)return null;const w=W(+m[2]);if(!w)return null;
+function cardFromKey(k){const iv=k.match(/^i(\d)-(\d+)$/);if(iv)return introCard(+iv[1],+iv[2]);const n=k.match(/^n([a-z0-9]+)-([svgfd])-(\d+)$/);if(n)return noteCard(n[1],n[2],+n[3]);const m=k.match(/^([vs])(\d+)-(\d+)$/);if(!m)return null;const w=W(+m[2]);if(!w)return null;
   const it=(m[1]==="v"?w.vocab:w.sentences)[+m[3]];return it?{key:k,type:m[1],item:it,week:+m[2]}:null}
 function dueKeys(){const t=today();return Object.keys(S.srs).filter(k=>S.srs[k].d<=t).sort((a,b)=>S.srs[a].d<S.srs[b].d?-1:1)}
 
@@ -486,7 +486,7 @@ function viewToday(){
   const allDone=tasks.every((t,i)=>done.includes(i));
   const title=w?w.title:OUTLINE[S.week-1];
   let html=`<div class="top"><div><div class="eyebrow">${today().replace(/-/g,".")}</div><h1>今日のメニュー</h1></div>
-   <div class="daybadge">連続 ${streak()}日</div></div>
+   <div class="daybadge">連続 ${streak()}日${!IN_ARTIFACT&&syncCfg()?`<br><span id="syncchip">${syncChipText()}</span>`:""}</div></div>
   <div class="tgrid"><div class="ta stack">${boardingPass(w,behind)}
   <div class="phases">${PHASES.map(p=>`<div class="${phaseOf(S.week).n===p.n?"on":""}"><b>PHASE ${p.n} · ${p.cefr}</b>${p.name}</div>`).join("")}</div></div>
   <div class="tb stack"><div class="spread"><h2>${S.day}日目　${plan.name}</h2><span class="mono small muted">約${tasks.reduce((a,t)=>a+t[1],0)}分</span></div>
@@ -629,8 +629,9 @@ function viewGuide(){
    <select id="set-rate"><option value="0.7">ゆっくり（0.7）</option><option value="0.8">少しゆっくり（0.8）</option><option value="0.9">ふつうより少し遅め（0.9）</option><option value="1">ふつう（1.0）</option></select>
    <label class="small" for="set-start">学習を始めた日</label><input type="date" id="set-start" value="${esc(S.startDate)}">
    <div class="row"><button class="btn sm" data-act="testvoice">声を試す</button></div>
-   <p class="small muted">${DB?"記録は claude.ai のアカウントに保存され、スマホとパソコンで同じ記録が使えます。":"記録はこの端末の中に保存されています（外には送られません）。iPhone と iPad の記録は別々です。"}</p>
+   <p class="small muted">${DB?"記録は claude.ai のアカウントに保存され、スマホとパソコンで同じ記録が使えます。":(syncCfg()?"記録はこの端末と、合言葉でつないだ同期先に保存されています。":"記録はこの端末の中に保存されています。下の「iPhone と iPad をつなぐ」で、2台の記録をそろえられます。")}</p>
   </div>
+  ${syncCard()}
   <div class="card stack"><h3>バックアップ・引っ越し</h3>
    <p class="small">機種変更や、iPhone の記録を iPad に移すときに使います。月に1回くらいバックアップしておくと安心です。</p>
    <div class="row"><button class="btn sm" data-act="backup">バックアップをファイルに保存</button><button class="btn sm" data-act="backupcopy">バックアップをコピー</button></div>
@@ -783,13 +784,15 @@ function copyText(text,fallbackEl){
   const ok=()=>toast("コピーしました。Claude に貼り付けてください");
   const ng=()=>{if(fallbackEl){fallbackEl.hidden=false;fallbackEl.focus();fallbackEl.select();toast("全部選んだ状態です。長押しでコピーしてください")}};
   try{navigator.clipboard.writeText(text).then(ok,ng)}catch(e){ng()}}
+function pasteInto(ta){try{navigator.clipboard.readText().then(t=>{if(!t){toast("コピーした文章がありません");return}ta.value=(ta.value.trim()?ta.value+"\n":"")+t;ta.dispatchEvent(new Event("input"));toast("貼り付けました")},()=>{ta.focus();toast("入力欄を長押しして「ペースト」を選んでください")})}catch(e){ta.focus();toast("入力欄を長押しして「ペースト」を選んでください")}}
 function claudeBridge(out,prompt,o){o=o||{};
   out.innerHTML=`<div class="card stack bridge"><div><div class="eyebrow">Claude アプリと連携</div><h3>${esc(o.title||"Claude に頼む")}</h3></div>
    <ol class="small" style="margin:0;padding-left:20px"><li>「頼む文章をコピー」を押す</li><li>「Claude を開く」→ 新しいチャットに貼り付けて送る${o.images?"（スクリーンショットがあれば一緒に添付）":""}</li><li>Claude の答えを長押し →「コピー」して、この下に貼り付ける</li></ol>
    <div class="row"><button class="btn accent" data-b="copy">頼む文章をコピー</button><a class="btn" href="https://claude.ai/new" target="_blank" rel="noopener">Claude を開く</a></div>
    <textarea data-b="src" readonly hidden style="min-height:120px;font-size:13px">${esc(prompt)}</textarea>
-   ${o.noPaste?"":`<label class="small" for="b-paste">Claude の答えを貼り付け</label><textarea id="b-paste" data-b="paste" style="min-height:110px" placeholder="ここに貼り付け"></textarea><div><button class="btn primary" data-b="take">取り込む</button></div>`}</div>`;
+   ${o.noPaste?"":`<div class="spread"><label class="small" for="b-paste">Claude の答えを貼り付け</label><button class="btn sm" data-b="pastebtn">📋 貼り付け</button></div><textarea id="b-paste" data-b="paste" style="min-height:110px" placeholder="ここに貼り付け"></textarea><div><button class="btn primary" data-b="take">取り込む</button></div>`}</div>`;
   out.querySelector('[data-b="copy"]').onclick=()=>copyText(prompt,out.querySelector('[data-b="src"]'));
+  const pb=out.querySelector('[data-b="pastebtn"]');if(pb)pb.onclick=()=>pasteInto(out.querySelector('[data-b="paste"]'));
   const tk=out.querySelector('[data-b="take"]');if(tk)tk.onclick=()=>{const v=out.querySelector('[data-b="paste"]').value.trim();if(!v){toast("Claude の答えを貼り付けてください");return}o.onResult&&o.onResult(v)}}
 function listenOnce(){return new Promise((res,rej)=>{const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){rej("none");return}
   const r=new R();r.lang=S.settings.accent==="en-GB"?"en-GB":S.settings.accent==="en-IN"?"en-IN":"en-US";r.interimResults=false;r.maxAlternatives=1;let txt="";
@@ -894,7 +897,7 @@ function lessonInput(done){const p=phaseOf(S.week);const w=W(S.week);
 const NKEY="eigo52-notes-v1";
 let NOTES=[];
 const CHANNELS=["WhatsApp","電話","Zoom・Meet","対面","メール","その他"];
-function saveNotesLocal(){try{localStorage.setItem(NKEY,JSON.stringify(NOTES))}catch(e){}}
+function saveNotesLocal(){try{localStorage.setItem(NKEY,JSON.stringify(NOTES))}catch(e){}if(typeof scheduleSync==="function")scheduleSync()}
 async function loadNotesDB(){if(!DB||!UID)return;
   try{const q=await DB.collection("data/users/"+UID).where("kind","==","note").get();
     const remote=q.docs.map(d=>d.data()).filter(n=>n&&n.id);
@@ -904,7 +907,7 @@ async function loadNotesDB(){if(!DB||!UID)return;
     NOTES=Object.values(byId).sort((a,b)=>(b.date+b.createdAt)>(a.date+a.createdAt)?1:-1);saveNotesLocal();
   }catch(e){}}
 async function pushNote(n){if(!DB||!UID)return;try{await DB.doc("data/users/"+UID+"/note-"+n.id).set(JSON.parse(JSON.stringify(n)))}catch(e){if(e&&e.code==="quota_exceeded")toast("保存容量がいっぱいです")}}
-async function deleteNote(id){NOTES=NOTES.filter(n=>n.id!==id);saveNotesLocal();
+async function deleteNote(id){NOTES=NOTES.filter(n=>n.id!==id);S.deletedNotes=[...new Set([...(S.deletedNotes||[]),id])];saveNotesLocal();
   Object.keys(S.srs).forEach(k=>{if(k.startsWith("n"+id+"-"))delete S.srs[k]});save();
   if(DB&&UID){try{await DB.doc("data/users/"+UID+"/note-"+id).delete()}catch(e){}}}
 function noteById(id){return NOTES.find(n=>n.id===id)}
@@ -913,18 +916,22 @@ function noteCard(id,type,i){const n=noteById(id);if(!n)return null;const L=note
   if(type==="v"){const it=(n.vocab||[])[i];return it?{key,type:"v",item:it,week:S.week,noteLabel:L}:null}
   if(type==="s"){const it=(n.sentences||[])[i];return it?{key,type:"s",item:{ja:it.ja,en:it.en,note:it.note},week:S.week,noteLabel:L}:null}
   if(type==="g"){const it=(n.grammar||[])[i];return it?{key,type:"s",item:{ja:it.ja,en:it.en,note:it.title+"："+it.explain},week:S.week,noteLabel:L}:null}
+  if(type==="d"){const it=(n.dialogue||[])[i];return it?{key,type:"s",item:{ja:it.ja,en:it.en,note:"実際の会話で言いたかったこと"},week:S.week,noteLabel:L}:null}
   if(type==="f"){const it=(n.fixes||[])[i];return it?{key,type:"s",item:{q:it.original,hint:"自分が言った英語です。もっと自然に言うと？",en:it.improved,note:it.why},week:S.week,noteLabel:L}:null}
   return null}
-function noteKeys(n,types){const out=[];(types||"svgf").split("").forEach(t=>{const arr=t==="s"?n.sentences:t==="v"?n.vocab:t==="g"?n.grammar:n.fixes;(arr||[]).forEach((_,i)=>out.push(`n${n.id}-${t}-${i}`))});return out}
-function noteCount(n){return (n.sentences||[]).length+(n.vocab||[]).length+(n.grammar||[]).length+(n.fixes||[]).length}
+function noteKeys(n,types){const out=[];(types||"svgfd").split("").forEach(t=>{if(t==="d"){(n.dialogue||[]).forEach((l,i)=>{if(l.s==="A")out.push(`n${n.id}-d-${i}`)});return}const arr=t==="s"?n.sentences:t==="v"?n.vocab:t==="g"?n.grammar:n.fixes;(arr||[]).forEach((_,i)=>out.push(`n${n.id}-${t}-${i}`))});return out}
+function noteCount(n){return (n.dialogue||[]).filter(l=>l.s==="A").length+(n.sentences||[]).length+(n.vocab||[]).length+(n.grammar||[]).length+(n.fixes||[]).length}
 function dueNoteKeys(){return dueKeys().filter(k=>k[0]==="n")}
 
 function viewNotes(){
   const total=NOTES.reduce((a,n)=>a+noteCount(n),0);const due=dueNoteKeys().length;
   return `<div class="top"><div><div class="eyebrow">実際の会話から学ぶ</div><h1>会話ノート</h1></div></div>
   <div class="stack">
-  <div class="card stack"><h2>今日の会話を記録する</h2>
-   <p class="small">インドの方と話した内容を、メモ・WhatsApp のチャット・スクリーンショットのどれかで入れてください。AIが整理して、<b>次の会話でそのまま使える文・文法・単語</b>の練習カードにします。</p>
+  <div class="card stack"><h2>今日の会話を貼り付ける</h2>
+   <p class="small">インドの方とのチャットや、話した内容のメモを貼り付けてください。AI が<b>自分の英語を自然な英語に直した「練習用の会話」</b>と、使える文・文法・単語のカードにします。</p>
+   <div class="spread"><label class="small" for="quick-raw">会話・メモ</label><button class="btn sm" data-act="quickpaste">📋 貼り付け</button></div>
+   <textarea id="quick-raw" style="min-height:110px" placeholder="Raj: Kindly revert by EOD.&#10;Me: OK I will send you tomorrow."></textarea>
+   <div class="row"><button class="btn accent" data-act="quickgo">AI で直して練習にする →</button></div>
    <div class="row"><button class="btn accent" data-act="newnote">＋ 会話を記録する</button><button class="btn" data-act="quicklog">話した記録だけ残す</button>${due?`<button class="btn" data-act="notereview">ノートの復習 ${Math.min(30,due)}枚</button>`:""}</div></div>
   ${peopleSection()}
   ${introRow()}
@@ -944,7 +951,7 @@ function noteKeysAll(){return NOTES.flatMap(n=>noteKeys(n))}
 /* --- 入力と AI 整理 --- */
 let IMGLIM=null;
 async function imageLimits(){if(IMGLIM!==null)return IMGLIM;try{const l=SAMPLE&&SAMPLE.limits?await SAMPLE.limits():null;IMGLIM=(l&&l.images)||false}catch(e){IMGLIM=false}return IMGLIM}
-async function openNoteEditor(prefill){
+async function openNoteEditor(prefill,rawText){
   const lim=await imageLimits();let imgs=[];let result=null;
   const partners=allPartners();
   openLesson("会話を記録する","",`<div class="stack">
@@ -952,7 +959,7 @@ async function openNoteEditor(prefill){
     <div style="flex:1;min-width:140px"><label class="small" for="n-partner">相手</label><input type="text" id="n-partner" list="n-plist" placeholder="例：Raj" value="${esc(prefill||"")}"><datalist id="n-plist">${partners.map(p=>`<option value="${esc(p)}">`).join("")}</datalist></div>
     <div style="flex:1;min-width:140px"><label class="small" for="n-ch">方法</label><select id="n-ch" style="width:100%">${CHANNELS.map(c=>`<option>${c}</option>`).join("")}</select></div>
     <div style="flex:1;min-width:140px"><label class="small" for="n-min">話した時間</label><select id="n-min" style="width:100%">${MINUTES.map(m=>`<option value="${m}" ${m===15?"selected":""}>${m}分</option>`).join("")}</select></div></div>
-   <label class="small" for="n-raw">話した内容（日本語のメモ・英語のチャットの貼り付け、どちらでもOK）</label>
+   <div class="spread"><label class="small" for="n-raw">話した内容（日本語のメモ・英語のチャットの貼り付け、どちらでもOK）</label><button class="btn sm" id="n-paste">📋 貼り付け</button></div>
    <textarea id="n-raw" style="min-height:180px" placeholder="例）Raj さんと来月の Zoom 会議の日程を決めた。IST の 11時＝日本の14時半。&#10;Raj: Kindly revert by EOD.&#10;Me: OK I will send you tomorrow.&#10;（自分の発言に Me: や 私: をつけると、AIが英語を直してくれます）"></textarea>
    <div class="row"><label class="btn sm" for="n-file" style="cursor:pointer">WhatsApp のトーク履歴（.txt）を読み込む</label><input type="file" id="n-file" accept=".txt,text/plain" hidden>
     ${lim?`<label class="btn sm" for="n-img" style="cursor:pointer">スクリーンショットを追加（${lim.maxCount}枚まで）</label><input type="file" id="n-img" accept="${esc((lim.mediaTypes||["image/png","image/jpeg"]).join(","))}" multiple hidden>`:""}</div>
@@ -964,7 +971,8 @@ async function openNoteEditor(prefill){
    <div class="row"><button class="btn accent" id="n-ai">${SAMPLE?"AIで整理して練習カードを作る":"Claude で整理して練習カードを作る"}</button><button class="btn" id="n-plain">AIを使わずに保存</button></div>
    <div id="n-out"></div></div>`,
   body=>{
-    const raw=body.querySelector("#n-raw");
+    const raw=body.querySelector("#n-raw");if(rawText)raw.value=rawText;
+    body.querySelector("#n-paste").onclick=()=>pasteInto(raw);
     body.querySelector("#n-file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{let txt=String(r.result||"");if(txt.length>40000){txt=txt.slice(-40000);toast("長いので、新しい方の部分だけ使います")}raw.value=(raw.value?raw.value+"\n":"")+txt};r.readAsText(f)};
     const im=body.querySelector("#n-img");if(im)im.onchange=e=>{const fs=[...e.target.files].filter(f=>f.size<=(lim.maxInputBytes||1e8));imgs=imgs.concat(fs).slice(0,lim.maxCount);
       body.querySelector("#n-thumbs").innerHTML=imgs.map(f=>`<img src="${URL.createObjectURL(f)}" alt="スクリーンショット">`).join("")};
@@ -1006,22 +1014,26 @@ ${m.raw||"（スクリーンショットを見てください）"}
 "sentences":[{"en":"次の会話で使える英文","ja":"日本語訳","note":"使う場面やコツ（日本語1文）"}],
 "grammar":[{"title":"文法・型の名前","explain":"日本語2文以内の説明","en":"この会話に合わせた例文","ja":"例文の訳"}],
 "vocab":[{"en":"単語・フレーズ","ja":"意味","ex":"この会話に合わせた例文","exJa":"例文の訳"}],
-"fixes":[{"original":"岩田さんが実際に書いた・言った英語","improved":"自然な英語","why":"日本語1文の理由"}]}
-件数：sentences 6〜10、grammar 2〜3、vocab 6〜12、fixes 0〜5。`}
+"fixes":[{"original":"岩田さんが実際に書いた・言った英語","improved":"自然な英語","why":"日本語1文の理由"}],
+"dialogue":[{"s":"A","name":"Akihiro","en":"岩田さんのセリフ（自然で正しい英語に直したもの）","ja":"日本語訳"},{"s":"B","name":"相手の名前","en":"相手のセリフ","ja":"日本語訳"}]}
+dialogue は「練習用の会話」です。実際の会話の流れと内容はそのままに、岩田さんのセリフは自然で正しい英語に直し、相手のセリフは聞き取りやすく整えます。岩田さんは s:"A"、相手は s:"B"。日本語のメモしかない場合は、メモの内容から自然な会話を作ります。1行は1〜2文。
+件数：sentences 6〜10、grammar 2〜3、vocab 6〜12、fixes 0〜5、dialogue 6〜16行。`}
 function cleanResult(r){r=r&&typeof r==="object"?r:{};const arr=(a,keys)=>Array.isArray(a)?a.filter(x=>x&&keys.every(k=>typeof x[k]==="string"&&x[k].trim())).slice(0,15):[];
   return{title:String(r.title||"会話").slice(0,40),summary:String(r.summary||""),topics:Array.isArray(r.topics)?r.topics.map(String).slice(0,3):[],
-    sentences:arr(r.sentences,["en","ja"]),grammar:arr(r.grammar,["title","en"]),vocab:arr(r.vocab,["en","ja"]),fixes:arr(r.fixes,["original","improved"])}}
+    sentences:arr(r.sentences,["en","ja"]),grammar:arr(r.grammar,["title","en"]),vocab:arr(r.vocab,["en","ja"]),fixes:arr(r.fixes,["original","improved"]),
+    dialogue:(Array.isArray(r.dialogue)?r.dialogue:[]).filter(x=>x&&typeof x.en==="string"&&x.en.trim()).slice(0,24).map(x=>({s:x.s==="A"?"A":"B",name:String(x.name||(x.s==="A"?"Akihiro":"Partner")),en:x.en.trim(),ja:String(x.ja||"")}))}}
 function showPicker(body,out,m,r){
   const sec=(title,list,type,fmt)=>list.length?`<div class="card"><div class="spread"><h3>${title}</h3><span class="small muted">${list.length}</span></div>${list.map((x,i)=>`<label class="pick"><input type="checkbox" checked data-pick="${type}-${i}"><span>${fmt(x)}</span>${spkBtn(type==="f"?x.improved:x.en)}</label>`).join("")}</div>`:"";
   out.innerHTML=`<div class="stack"><div class="ai"><b>${esc(r.title)}</b><p>${esc(r.summary)}</p>${r.topics.length?`<div class="row" style="margin-top:6px">${r.topics.map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div>`:""}</div>
    <p class="small muted">練習に入れたいものにチェックを入れたまま保存してください。いらないものはチェックを外します。</p>
+   ${r.dialogue.length?`<div class="card"><div class="spread"><h3>練習用の会話（自然な英語に直した版）</h3><span class="small muted">${r.dialogue.length}行</span></div>${r.dialogue.map(l=>`<div class="dl ${l.s==="A"?"mine":""}"><span class="who">${esc(l.name)}</span><div class="t"><span class="en">${esc(l.en)}</span><span class="ja">${esc(l.ja)}</span></div>${spkBtn(l.en)}</div>`).join("")}</div>`:""}
    ${sec("使える文（瞬間英作文）",r.sentences,"s",x=>`<span class="en">${esc(x.en)}</span><span class="small">${esc(x.ja)}</span>${x.note?`<span class="small muted" style="display:block">${esc(x.note)}</span>`:""}`)}
    ${sec("自分の英語をもっと自然に",r.fixes,"f",x=>`<span class="small" style="text-decoration:line-through;color:var(--muted)">${esc(x.original)}</span><span class="en" style="color:var(--green);font-weight:700">${esc(x.improved)}</span><span class="small muted">${esc(x.why||"")}</span>`)}
    ${sec("文法・型",r.grammar,"g",x=>`<b class="small">${esc(x.title)}</b><span class="small muted" style="display:block">${esc(x.explain||"")}</span><span class="en">${esc(x.en)}</span><span class="small">${esc(x.ja||"")}</span>`)}
    ${sec("単語・フレーズ",r.vocab,"v",x=>`<span class="en"><b>${esc(x.en)}</b>　${esc(x.ja)}</span>${x.ex?`<span class="small muted">${esc(x.ex)}</span>`:""}`)}
    <div class="row"><button class="btn primary" id="n-save">保存して練習カードに追加</button></div></div>`;
   out.querySelector("#n-save").onclick=()=>{const keep=t=>(i)=>{const c=out.querySelector(`[data-pick="${t}-${i}"]`);return !c||c.checked};
-    saveNewNote(Object.assign({},m,{title:r.title,summary:r.summary,topics:r.topics,sentences:r.sentences.filter((_,i)=>keep("s")(i)),fixes:r.fixes.filter((_,i)=>keep("f")(i)),grammar:r.grammar.filter((_,i)=>keep("g")(i)),vocab:r.vocab.filter((_,i)=>keep("v")(i))}))};
+    saveNewNote(Object.assign({},m,{title:r.title,summary:r.summary,topics:r.topics,dialogue:r.dialogue,sentences:r.sentences.filter((_,i)=>keep("s")(i)),fixes:r.fixes.filter((_,i)=>keep("f")(i)),grammar:r.grammar.filter((_,i)=>keep("g")(i)),vocab:r.vocab.filter((_,i)=>keep("v")(i))}))};
   out.scrollIntoView({behavior:"smooth",block:"start"})}
 function saveNewNote(n,opt){opt=opt||{};
   n.kind="note";n.id=Date.now().toString(36);n.createdAt=Date.now();ensurePerson(n.partner);
@@ -1035,7 +1047,8 @@ function saveNewNote(n,opt){opt=opt||{};
 function openNote(id){const n=noteById(id);if(!n)return;
   openLesson(n.partner?n.partner+"さんとの会話":"会話ノート",n.date,()=>`<div class="stack">
    <div><div class="row" style="gap:6px">${n.partner?`<button class="chip a" data-goperson style="border:none;cursor:pointer">${esc(n.partner)} さんのページ →</button>`:""}<span class="chip">${esc(n.channel||"")}</span>${n.minutes?`<span class="chip">${n.minutes}分</span>`:""}${(n.topics||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div><h2 style="margin-top:6px">${esc(n.title)}</h2><p class="muted" style="margin-top:4px">${esc(n.summary)}</p></div>
-   <div class="row"><button class="btn accent" data-np="sgf">文カードで練習</button>${(n.vocab||[]).length?`<button class="btn" data-np="v">単語カード</button>`:""}<button class="btn" id="np-all">全部聞く</button>${SAMPLE?`<button class="btn" id="np-rp">AIと続きを話す</button>`:""}</div>
+   <div class="row">${(n.dialogue||[]).length?`<button class="btn accent" id="np-shadow">この会話でシャドーイング</button>`:""}<button class="btn ${(n.dialogue||[]).length?"":"accent"}" data-np="dsgf">文カードで練習</button>${(n.vocab||[]).length?`<button class="btn" data-np="v">単語カード</button>`:""}<button class="btn" id="np-all">全部聞く</button>${SAMPLE?`<button class="btn" id="np-rp">AIと続きを話す</button>`:""}</div>
+   ${(n.dialogue||[]).length?`<div class="card"><div class="spread"><h3>練習用の会話（自然な英語に直した版）</h3><span class="small muted">${n.dialogue.length}行</span></div>${n.dialogue.map(l=>`<div class="dl ${l.s==="A"?"mine":""}"><span class="who">${esc(l.name)}</span><div class="t"><span class="en">${esc(l.en)}</span><span class="ja">${esc(l.ja)}</span></div>${spkBtn(l.en)}</div>`).join("")}</div>`:""}
    ${(n.sentences||[]).length?`<div class="card"><h3>使える文</h3>${n.sentences.map(x=>`<div class="exline">${spkBtn(x.en)}<div class="t"><span class="en">${esc(x.en)}</span><span class="small">${esc(x.ja)}</span>${x.note?`<span class="small muted" style="display:block">${esc(x.note)}</span>`:""}</div></div>`).join("")}</div>`:""}
    ${(n.fixes||[]).length?`<div class="card"><h3>自分の英語をもっと自然に</h3>${n.fixes.map(x=>`<div class="fix"><span class="old">${esc(x.original)}</span><span class="row" style="gap:8px">${spkBtn(x.improved)}<span class="new en">${esc(x.improved)}</span></span><span class="small muted">${esc(x.why||"")}</span></div>`).join("")}</div>`:""}
    ${(n.grammar||[]).length?`<div class="card stack"><h3>文法・型</h3>${n.grammar.map((x,i)=>`<div class="point"><span class="n">${i+1}</span><div><b>${esc(x.title)}</b><p class="small">${esc(x.explain||"")}</p><div class="row" style="margin-top:4px;flex-wrap:nowrap">${spkBtn(x.en)}<span><span class="en">${esc(x.en)}</span><br><span class="small muted">${esc(x.ja||"")}</span></span></div></div></div>`).join("")}</div>`:""}
@@ -1043,6 +1056,7 @@ function openNote(id){const n=noteById(id);if(!n)return;
    ${n.raw?`<details class="card"><summary class="small" style="cursor:pointer">元のメモ・チャットを見る</summary><pre style="white-space:pre-wrap;font-family:var(--f-body);font-size:13px;margin:8px 0 0">${esc(n.raw)}</pre></details>`:""}
    <div class="row"><button class="btn sm ghost" id="np-del">このノートを削除</button></div></div>`,
   body=>{
+    const sh=body.querySelector("#np-shadow");if(sh)sh.onclick=()=>lessonShadow({week:S.week,scene:n.title,dialogue:{title:(n.partner?n.partner+"さんとの会話":"会話"),lines:n.dialogue}},"listen",()=>{logMinutes(10,"note");save();closeLesson();setTimeout(()=>openNote(id),50)});
     const gp=body.querySelector("[data-goperson]");if(gp)gp.onclick=()=>openPerson(n.partner);
     body.querySelectorAll("[data-np]").forEach(b=>b.onclick=()=>{const cards=noteKeys(n,b.dataset.np).map(cardFromKey).filter(Boolean);
       const back=()=>{logMinutes(Math.max(3,Math.round(cards.length*0.7)),"note");save();closeLesson();setTimeout(()=>openNote(id),50)};
@@ -1237,6 +1251,70 @@ function peopleSection(){const ps=allPartners();if(!ps.length)return"";
    <div class="tablewrap"><table><tr><th>名前</th><th>回数</th><th>合計</th><th>最後</th></tr>${rows.map(r=>{const p=people().find(x=>x.name===r.n)||{};return `<tr data-person="${esc(r.n)}" style="cursor:pointer"><td><b>${esc(r.n)}</b>${p.org?`<br><span class="small muted">${esc(p.org)}</span>`:""}</td><td class="mono">${r.count}</td><td class="mono">${r.minutes}分</td><td class="mono small">${esc((r.last||"").slice(5).replace("-","/"))}</td></tr>`}).join("")}</table></div>
    <p class="small muted">名前をタップすると、その人との記録・メモ・次に話す準備が見られます。</p></div>`}
 
+/* ============ iPhone と iPad の同期（合言葉方式・Supabase） ============ */
+const SB_RPC="https://clfmhgnkwanhnbsjpyxc.supabase.co/rest/v1/rpc/";
+const SB_KEY="sb_publishable_XFVzuu-ijKqT-pZmHkb95Q_ZI7DgL01";
+const SYNCKEY="eigo52-sync-v1";
+let syncing=false,syncAgain=false,syncTimer=null,syncState="";
+function syncCfg(){try{return JSON.parse(localStorage.getItem(SYNCKEY)||"null")}catch(e){return null}}
+function setSyncCfg(c){try{c?localStorage.setItem(SYNCKEY,JSON.stringify(c)):localStorage.removeItem(SYNCKEY)}catch(e){}}
+async function rpc(fn,body){const r=await fetch(SB_RPC+fn,{method:"POST",headers:{apikey:SB_KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error("http "+r.status);return r.json()}
+function genCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";const b=new Uint8Array(20);crypto.getRandomValues(b);let s="";b.forEach((x,i)=>{s+=A[x%32];if(i%5===4&&i<19)s+="-"});return s}
+function normCode(s){return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"").replace(/(.{5})(?=.)/g,"$1-")}
+function scheduleSync(){if(IN_ARTIFACT||!syncCfg())return;clearTimeout(syncTimer);syncTimer=setTimeout(syncNow,2500)}
+function mergeRemote(d){if(!d||!d.state)return;const R=merge(d.state),L=S;
+  const newer=(R.updatedAt||0)>(L.updatedAt||0)?R:L,older=newer===L?R:L;const out=Object.assign({},newer);
+  out.srs=Object.assign({},L.srs);Object.entries(R.srs||{}).forEach(([k,c])=>{const a=out.srs[k];if(!a||c.d>a.d||(c.d===a.d&&c.b>a.b))out.srs[k]=c});
+  out.log=Object.assign({},L.log);Object.entries(R.log||{}).forEach(([day,l])=>{const a=out.log[day];out.log[day]=!a?l:{m:Math.max(a.m||0,l.m||0),s:Math.max(a.s||0,l.s||0),t:(a.t||[]).length>=(l.t||[]).length?a.t:l.t}});
+  out.tests=Object.assign({},L.tests);Object.entries(R.tests||{}).forEach(([w,p])=>{out.tests[w]=Math.max(out.tests[w]||0,p)});
+  const uniq=(arr,key)=>{const m=new Map();arr.forEach(x=>{if(x)m.set(key(x),x)});return [...m.values()]};
+  out.scores=uniq([...(older.scores||[]),...(newer.scores||[])],x=>x.date+"|"+x.test+"|"+x.result);
+  out.diary=uniq([...(older.diary||[]),...(newer.diary||[])],x=>x.date).sort((a,b)=>a.date<b.date?-1:1);
+  const pm=new Map();[...(older.people||[]),...(newer.people||[])].forEach(p=>{if(!p||!p.name)return;const o=pm.get(p.name)||{};pm.set(p.name,{name:p.name,org:p.org||o.org||"",memo:p.memo||o.memo||""})});out.people=[...pm.values()];
+  out.deletedNotes=[...new Set([...(L.deletedNotes||[]),...(R.deletedNotes||[])])];
+  if(L.doneToday&&R.doneToday&&L.doneToday.date===R.doneToday.date&&L.week===R.week&&L.day===R.day)out.doneToday={date:L.doneToday.date,tasks:[...new Set([...(L.doneToday.tasks||[]),...(R.doneToday.tasks||[])])]};
+  out.updatedAt=Math.max(L.updatedAt||0,R.updatedAt||0);S=out;
+  const del=new Set(S.deletedNotes);const nm=new Map();[...(d.notes||[]),...NOTES].forEach(n=>{if(n&&n.id&&!del.has(n.id))nm.set(n.id,n)});
+  NOTES=[...nm.values()].sort((a,b)=>(b.date+b.createdAt)>(a.date+a.createdAt)?1:-1);
+  lsSet(S);try{localStorage.setItem(NKEY,JSON.stringify(NOTES))}catch(e){}}
+async function syncNow(){const c=syncCfg();if(!c||IN_ARTIFACT)return;if(syncing){syncAgain=true;return}syncing=true;setSyncState("sync");
+  const before=JSON.stringify([S.week,S.day,NOTES.length,Object.keys(S.srs).length,S.doneToday]);
+  try{let done=false;for(let i=0;i<3&&!done;i++){
+      const rows=await rpc("eigo52_pull",{p_code:c.code});const remote=rows&&rows[0];
+      if(remote)mergeRemote(remote.data);
+      const r=await rpc("eigo52_push",{p_code:c.code,p_data:{app:"eigo52",v:1,state:S,notes:NOTES},p_base:remote?remote.updated_at:null});
+      if(r&&r.ok){setSyncCfg(Object.assign(syncCfg()||c,{last:Date.now()}));done=true}}
+    setSyncState(done?"ok":"ng")}
+  catch(e){setSyncState("ng")}
+  syncing=false;
+  const after=JSON.stringify([S.week,S.day,NOTES.length,Object.keys(S.srs).length,S.doneToday]);
+  if(before!==after&&$("#lesson").hidden)render();
+  if(syncAgain){syncAgain=false;scheduleSync()}}
+function setSyncState(s){syncState=s;const el=document.getElementById("syncchip");if(el)el.innerHTML=syncChipText()}
+function syncChipText(){const c=syncCfg();if(!c)return"";
+  if(syncState==="sync")return"☁ 同期中…";if(syncState==="ng")return"☁ 同期できませんでした";
+  return c.last?"☁ 同期 "+new Date(c.last).toTimeString().slice(0,5):"☁ つながっています"}
+function syncCard(){if(IN_ARTIFACT)return"";const c=syncCfg();
+  if(!c)return `<div class="card stack" id="synccard"><h3>iPhone と iPad をつなぐ</h3>
+   <p class="small">「合言葉」で2台の記録（進み具合・カード・会話ノート・話した相手）を自動でそろえます。ログインは不要です。</p>
+   <p class="small"><b>1台目（例：iPhone）</b>で「合言葉を作る」→ 表示された合言葉を <b>2台目（iPad）</b>の「合言葉を入れてつなぐ」に入れます。</p>
+   <div><button class="btn accent" data-act="syncnew">この端末で合言葉を作る</button></div>
+   <label class="small" for="sync-in">合言葉を入れてつなぐ（2台目）</label>
+   <input type="text" id="sync-in" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" autocapitalize="characters" autocomplete="off" spellcheck="false" style="font-family:var(--f-mono)">
+   <div><button class="btn" data-act="syncjoin">つなぐ</button></div>
+   <p class="small muted">合言葉を知っている人は記録を見られるので、人には教えないでください。</p></div>`;
+  return `<div class="card stack" id="synccard"><div class="spread"><h3>iPhone と iPad をつなぐ</h3><span class="chip g" id="syncchip">${syncChipText()}</span></div>
+   <p class="small">この端末はつながっています。もう1台に、この合言葉を入れてください。</p>
+   <div class="mono" style="font-size:20px;font-weight:600;letter-spacing:.06em;overflow-wrap:anywhere">${esc(c.code)}</div>
+   <div class="row"><button class="btn sm" data-act="synccopy">合言葉をコピー</button>${navigator.share?`<button class="btn sm" data-act="syncshare">AirDrop などで送る</button>`:""}<button class="btn sm" data-act="syncnow">今すぐ同期</button></div>
+   <textarea id="sync-code-src" readonly hidden style="min-height:40px">${esc(c.code)}</textarea>
+   <div><button class="btn sm ghost" data-act="syncoff" id="syncoffbtn">この端末の同期をやめる</button></div></div>`}
+async function syncJoin(code){code=normCode(code);if(code.replace(/-/g,"").length<16){toast("合言葉が短すぎます");return}
+  try{const rows=await rpc("eigo52_pull",{p_code:code});if(!rows||!rows[0]){toast("その合言葉は見つかりません。1台目の合言葉を確かめてください");return}
+    setSyncCfg({code});await syncNow();render();toast("つながりました。記録をそろえました")}
+  catch(e){toast("つながりませんでした。インターネット接続を確かめてください")}}
+
 /* ============ イベント ============ */
 document.addEventListener("click",e=>{
   const s=e.target.closest("[data-say]");if(s){e.stopPropagation();stopSpeak();speak(s.dataset.say);return}
@@ -1250,6 +1328,8 @@ document.addEventListener("click",e=>{
   if(act==="nextday"){if(S.day<7)S.day++;else if(S.week<52){S.week++;S.day=1}S.doneToday={date:today(),tasks:[]};save();render();window.scrollTo(0,0);toast(`Week ${S.week} の ${S.day}日目へ`)}
   else if(act==="addscore"){const r=$("#sc-res").value.trim();if(!r){toast("結果を入力してください");return}S.scores.push({date:$("#sc-date").value,test:$("#sc-test").value,result:r});save();render();toast("記録しました")}
   else if(act==="newnote"){openNoteEditor()}
+  else if(act==="quickpaste"){pasteInto($("#quick-raw"))}
+  else if(act==="quickgo"){const v=$("#quick-raw").value.trim();if(!v){toast("会話を貼り付けてください");return}openNoteEditor("",v);$("#quick-raw").value=""}
   else if(act==="intro"){openIntro(0)}
   else if(act==="quicklog"){openQuickLog("")}
   else if(act==="notereview"){lessonCards(dueNoteKeys().slice(0,30).map(cardFromKey).filter(Boolean),"ノートの復習",()=>{logMinutes(10,"note");save();closeLesson()},true)}
@@ -1257,6 +1337,12 @@ document.addEventListener("click",e=>{
     if(act==="backup"){try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type:"application/json"}));a.download="eigo52-backup-"+today()+".json";document.body.appendChild(a);a.click();a.remove();toast("保存しました（ファイルAppの「ダウンロード」）")}catch(e){toast("保存できませんでした。コピーを使ってください")}}
     else copyText(data,$("#bk-text"))}
   else if(act==="restore"){restoreBackup($("#bk-paste").value)}
+  else if(act==="syncnew"){setSyncCfg({code:genCode()});syncNow().then(()=>{render();toast("合言葉を作りました。もう1台に入れてください")});render()}
+  else if(act==="syncjoin"){syncJoin($("#sync-in").value)}
+  else if(act==="synccopy"){copyText(syncCfg().code,$("#sync-code-src"))}
+  else if(act==="syncshare"){navigator.share({title:"英語52週の合言葉",text:syncCfg().code}).catch(()=>{})}
+  else if(act==="syncnow"){syncNow().then(()=>{render();toast(syncState==="ok"?"同期しました":"同期できませんでした")})}
+  else if(act==="syncoff"){const b=$("#syncoffbtn");if(!b.dataset.ok){b.dataset.ok=1;b.textContent="もう一度押すと、この端末の同期をやめます（記録は残ります）";return}setSyncCfg(null);render();toast("この端末の同期をやめました")}
   else if(act==="testvoice"){speak("Hello, I'm Akihiro. Nice to meet you. Let's work together.")}
 });
 document.addEventListener("focusin",e=>{if(e.target.matches("textarea,input[type=text]"))setTimeout(()=>{try{e.target.scrollIntoView({block:"center",behavior:"smooth"})}catch(_){}},350)});
@@ -1270,7 +1356,8 @@ document.addEventListener("change",e=>{
   if(e.target.id==="set-start"&&e.target.value){S.startDate=e.target.value;save()}
 });
 const _rg=render;render=function(){_rg();const a=$("#set-accent");if(a)a.value=S.settings.accent;const r=$("#set-rate");if(r)r.value=String(S.settings.rate)};
-initStore();
+initStore().then(()=>{if(!IN_ARTIFACT&&syncCfg()){syncNow();setInterval(()=>{if(document.visibilityState==="visible")syncNow()},120000)}});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&!IN_ARTIFACT&&syncCfg())syncNow()});
 </script>
 
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}</script>
