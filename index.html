@@ -264,6 +264,11 @@ th{font-size:11.5px;color:var(--muted);font-weight:700}
 .tabs button{flex:none;background:none;border:none;border-bottom:2px solid transparent;padding:8px 12px;font-weight:700;font-size:13.5px;color:var(--muted)}
 .tabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
 .script .exline .en{font-size:18px}
+.stats.s6{grid-template-columns:repeat(3,minmax(0,1fr))}
+.stats.s6 .stat{border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.stats.s6 .stat:nth-child(3n+1){border-left:none}
+.stats.s6 .stat:nth-child(-n+3){border-top:none}
+@media (max-width:480px){.stats.s6{grid-template-columns:repeat(2,minmax(0,1fr))}.stats.s6 .stat{border-left:1px solid var(--line);border-top:1px solid var(--line)}.stats.s6 .stat:nth-child(odd){border-left:none}.stats.s6 .stat:nth-child(-n+2){border-top:none}}
 /* iPhone・iPad */
 html{-webkit-text-size-adjust:100%}
 body{touch-action:manipulation;overscroll-behavior-y:none}
@@ -351,15 +356,15 @@ const phaseOf=w=>PHASES.find(p=>w>=p.weeks[0]&&w<=p.weeks[1])||PHASES[3];
 
 /* 1週間の流れ（曜日ではなく「1日目〜7日目」。終わったら次の日へ進む） */
 const DAYS={
- 1:{name:"文法と単語①",tasks:[["grammar",10],["vocab",10,[0,7]],["shadow",15,"listen"]]},
- 2:{name:"単語②と瞬間英作文",tasks:[["vocab",10,[7,14]],["sentences",15,[0,5]],["shadow",15,"overlap"]]},
- 3:{name:"単語③と瞬間英作文",tasks:[["vocab",10,[14,20]],["sentences",15,[5,10]],["shadow",15,"shadow"]]},
- 4:{name:"総復習と役になりきる",tasks:[["review",10],["sentences",15,[0,10]],["shadow",15,"role"]]},
- 5:{name:"書く日",tasks:[["writing",15],["review",10]]},
+ 1:{name:"文法と単語①",tasks:[["grammar",10],["vocab",10,[0,7]],["shadow",15,"listen"],["speak",10]]},
+ 2:{name:"単語②と瞬間英作文",tasks:[["vocab",10,[7,14]],["sentences",15,[0,5]],["shadow",15,"overlap"],["speak",10]]},
+ 3:{name:"単語③と瞬間英作文",tasks:[["vocab",10,[14,20]],["sentences",15,[5,10]],["shadow",15,"shadow"],["speak",10]]},
+ 4:{name:"総復習と役になりきる",tasks:[["review",10],["sentences",15,[0,10]],["shadow",15,"role"],["speak",10]]},
+ 5:{name:"書く日",tasks:[["writing",15],["review",10],["speak",10]]},
  6:{name:"週テストと話す日",tasks:[["test",15],["roleplay",15]]},
- 7:{name:"耳の日",tasks:[["input",20],["review",10]]}
+ 7:{name:"耳の日",tasks:[["input",20],["review",10],["speak",10]]}
 };
-const TASKNAME={grammar:"文法ミニ講義",vocab:"単語カード",sentences:"瞬間英作文",shadow:"シャドーイング",review:"復習カード",writing:"英語日記＋AI添削",test:"週テスト",roleplay:"AIと英会話ロールプレイ",input:"耳だけ学習（外部教材）"};
+const TASKNAME={grammar:"文法ミニ講義",vocab:"単語カード",sentences:"瞬間英作文",shadow:"シャドーイング",review:"復習カード",writing:"英語日記＋AI添削",test:"週テスト",roleplay:"AIと英会話ロールプレイ",input:"耳だけ学習（外部教材）",speak:"話す練習"};
 const SHADOWSTEP={listen:"①聞くだけ",read:"②見ながら聞く",overlap:"③重ねて読む",shadow:"④シャドーイング",role:"⑤役になりきる"};
 
 /* ============ 保存（db があればアカウントに、なければこの端末に） ============ */
@@ -367,7 +372,7 @@ const LSKEY="eigo52-state-v1";
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const addDays=(s,n)=>{const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const diffDays=(a,b)=>Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/864e5);
-function fresh(){return{v:1,startDate:today(),week:1,day:1,doneToday:{date:"",tasks:[]},srs:{},log:{},tests:{},scores:[],diary:[],settings:{accent:"en-US",rate:0.9,dir:"en"},updatedAt:0}}
+function fresh(){return{v:1,startDate:today(),week:1,day:1,doneToday:{date:"",tasks:[]},srs:{},log:{},tests:{},scores:[],diary:[],people:[],settings:{accent:"en-US",rate:0.9,dir:"en"},updatedAt:0}}
 let S=fresh();
 let DB=null, UID=null, SAMPLE=null, saveTimer=null;
 function lsGet(){try{const t=localStorage.getItem(LSKEY);return t?JSON.parse(t):null}catch(e){return null}}
@@ -429,7 +434,7 @@ function md(t){ // AIの返答を安全に整形
     if(inUl){h+="</ul>";inUl=false}
     if(/^#{1,4}\s/.test(ln))h+="<h4>"+ln.replace(/^#{1,4}\s/,"")+"</h4>";else if(ln.trim())h+="<p>"+ln+"</p>"}
   if(inUl)h+="</ul>";return h}
-function logMinutes(m,task){const d=today();const L=S.log[d]||(S.log[d]={m:0,t:[]});L.m+=m;if(task)L.t.push(task)}
+function logMinutes(m,task){const d=today();const L=S.log[d]||(S.log[d]={m:0,t:[]});L.m+=m;if(task)L.t.push(task);if(task==="speak"||task==="roleplay")L.s=(L.s||0)+m}
 
 /* ============ 間隔反復（SRS） ============ */
 const IV=[0,1,3,7,14,30,60];
@@ -492,7 +497,7 @@ function viewToday(){
    <div class="stat"><b>${streak()}</b><span>連続学習日数</span></div>
    <div class="stat"><b>${(totalMin()/60).toFixed(1)}</b><span>合計時間（h）</span></div>
    <div class="stat"><b>${mastered("v")}</b><span>覚えた単語</span></div>
-   <div class="stat"><b>${dueKeys().length}</b><span>今日の復習カード</span></div>
+   <div class="stat"><b>${(speakingMinutes()/60).toFixed(1)}</b><span>英語で話した（h）</span></div>
   </div>
   ${introRow()}
   <p class="note">アプリ以外に、毎日<b>20分の「耳だけ学習」</b>（通勤・施術の合間に今週の会話や VOA／BBC を聞く）をすると、1年で約600時間になります。${S.week>=14?"第2期からは<b>オンライン英会話25分</b>も足しましょう。":""}</p>
@@ -510,6 +515,7 @@ function taskRow(t,i,done,w){
   else if(type==="roleplay")sub=w?w.speaking:"";
   else if(type==="test")sub="単語10問＋並べ替え5問";
   else if(type==="input")sub=phaseOf(S.week).res.slice(-1)[0][0];
+  else if(type==="speak")sub="お題："+speakTopic(w).ja+"（Claude の音声モード・実際の会話・ひとりで）";
   return `<button class="task ${done?"done":""}" data-task="${i}"><span class="ic">${done?"✓":i+1}</span><span><b>${TASKNAME[type]}</b><small>${esc(sub)}</small></span><span class="min">${min}分</span></button>`}
 
 /* ============ 画面：ロードマップ ============ */
@@ -549,11 +555,13 @@ function viewRecord(){
   const tw=Object.keys(S.tests).map(Number).sort((a,b)=>a-b);
   return `<div class="top"><div><div class="eyebrow">あなたの記録</div><h1>記録</h1></div></div>
   <div class="stack">
-  <div class="stats">
+  <div class="stats s6">
    <div class="stat"><b>${days}</b><span>学習した日</span></div>
+   <div class="stat"><b>${(speakingMinutes()/60).toFixed(1)}</b><span>英語で話した（h）</span></div>
    <div class="stat"><b>${(totalMin()/60).toFixed(1)}</b><span>合計時間（h）</span></div>
    <div class="stat"><b>${mastered("v")}<span class="small muted">/${vocabTotal}</span></b><span>覚えた単語</span></div>
    <div class="stat"><b>${mastered("s")}<span class="small muted">/${sentTotal}</span></b><span>言える文</span></div>
+   <div class="stat"><b>${allPartners().length}</b><span>話した相手（人）</span></div>
   </div>
   <div class="card stack"><div class="spread"><h3>学習した日（20週）</h3><span class="small muted">濃いほど長く学習</span></div><div class="heat">${cells}</div></div>
   <div class="card stack"><h3>週テストの点数</h3>${tw.length?`<div class="bars">${tw.map(n=>`<div style="height:${S.tests[n]}%" title="W${n}: ${S.tests[n]}点"></div>`).join("")}</div><p class="small muted">W${tw[0]}〜W${tw[tw.length-1]}／最新 ${S.tests[tw[tw.length-1]]}点</p>`:`<p class="small muted">6日目の週テストを受けると、ここに点数が並びます。</p>`}</div>
@@ -653,11 +661,11 @@ function completeTask(ti,min,name){
 
 function runTask(t,w,ti){
   const [type,min,arg]=t;
-  if(!w&&type!=="review"&&type!=="input"){toast("この週の教材データがまだありません");return}
-  const done=()=>completeTask(ti,min,type);
+  if(!w&&type!=="review"&&type!=="input"&&type!=="speak"){toast("この週の教材データがまだありません");return}
+  const done=(alt)=>completeTask(ti,min,typeof alt==="string"?alt:type);
   ({grammar:()=>lessonGrammar(w,done),vocab:()=>lessonCards(w.vocab.slice(arg[0],arg[1]).map((it,k)=>({key:`v${w.week}-${arg[0]+k}`,type:"v",item:it,week:w.week})),"単語カード",done),
    sentences:()=>lessonSentences(w,arg,done),shadow:()=>lessonShadow(w,arg,done),review:()=>lessonReview(done),writing:()=>lessonWriting(w,done),
-   test:()=>lessonTest(w,done),roleplay:()=>lessonRoleplay(w,done),input:()=>lessonInput(done)})[type]()}
+   test:()=>lessonTest(w,done),roleplay:()=>lessonRoleplay(w,done),input:()=>lessonInput(done),speak:()=>lessonSpeak(w,done)})[type]()}
 
 /* --- 文法 --- */
 function lessonGrammar(w,done){const g=w.grammar;
@@ -917,7 +925,8 @@ function viewNotes(){
   <div class="stack">
   <div class="card stack"><h2>今日の会話を記録する</h2>
    <p class="small">インドの方と話した内容を、メモ・WhatsApp のチャット・スクリーンショットのどれかで入れてください。AIが整理して、<b>次の会話でそのまま使える文・文法・単語</b>の練習カードにします。</p>
-   <div class="row"><button class="btn accent" data-act="newnote">＋ 会話を記録する</button>${due?`<button class="btn" data-act="notereview">ノートの復習 ${Math.min(30,due)}枚</button>`:""}</div></div>
+   <div class="row"><button class="btn accent" data-act="newnote">＋ 会話を記録する</button><button class="btn" data-act="quicklog">話した記録だけ残す</button>${due?`<button class="btn" data-act="notereview">ノートの復習 ${Math.min(30,due)}枚</button>`:""}</div></div>
+  ${peopleSection()}
   ${introRow()}
   <div class="stats">
    <div class="stat"><b>${NOTES.length}</b><span>記録した会話</span></div>
@@ -925,7 +934,7 @@ function viewNotes(){
    <div class="stat"><b>${noteKeysAll().filter(k=>S.srs[k]&&S.srs[k].b>=3).length}</b><span>覚えたカード</span></div>
    <div class="stat"><b>${due}</b><span>今日の復習</span></div>
   </div>
-  ${NOTES.length?`<div class="cardgrid">`+NOTES.map(n=>`<button class="notecard" data-note="${esc(n.id)}"><div class="spread"><span class="small mono muted">${esc(n.date)}</span><span class="row" style="gap:6px"><span class="chip">${esc(n.channel||"")}</span><span class="chip g">${noteCount(n)}枚</span></span></div>
+  ${NOTES.length?`<div class="cardgrid">`+NOTES.map(n=>`<button class="notecard" data-note="${esc(n.id)}"><div class="spread"><span class="small mono muted">${esc(n.date)}</span><span class="row" style="gap:6px"><span class="chip">${esc(n.channel||"")}</span>${n.minutes?`<span class="chip">${n.minutes}分</span>`:""}${noteCount(n)?`<span class="chip g">${noteCount(n)}枚</span>`:""}</span></div>
      <h3 style="margin:4px 0 2px">${esc(n.partner?n.partner+"さんと：":"")}${esc(n.title||"会話")}</h3><p>${esc(n.summary||"")}</p></button>`).join("")+`</div>`
    :`<div class="card stack"><h3>まだ記録はありません</h3><p class="small muted">たとえば「Raj さんと WhatsApp で、来月のオンライン会議の日程と、Web制作の見積もりについて話した。dispatch の意味がわからなかった」のようなメモでも、ちゃんと教材になります。</p></div>`}
   <p class="note">ノートのカードは、毎日の「復習カード」にも自動で出てきます。今週の教材と、実際の会話の両方から復習できます。</p>
@@ -935,13 +944,14 @@ function noteKeysAll(){return NOTES.flatMap(n=>noteKeys(n))}
 /* --- 入力と AI 整理 --- */
 let IMGLIM=null;
 async function imageLimits(){if(IMGLIM!==null)return IMGLIM;try{const l=SAMPLE&&SAMPLE.limits?await SAMPLE.limits():null;IMGLIM=(l&&l.images)||false}catch(e){IMGLIM=false}return IMGLIM}
-async function openNoteEditor(){
+async function openNoteEditor(prefill){
   const lim=await imageLimits();let imgs=[];let result=null;
-  const partners=[...new Set(NOTES.map(n=>n.partner).filter(Boolean))];
+  const partners=allPartners();
   openLesson("会話を記録する","",`<div class="stack">
    <div class="row"><div style="flex:1;min-width:140px"><label class="small" for="n-date">日付</label><input type="date" id="n-date" value="${today()}"></div>
-    <div style="flex:1;min-width:140px"><label class="small" for="n-partner">相手</label><input type="text" id="n-partner" list="n-plist" placeholder="例：Raj"><datalist id="n-plist">${partners.map(p=>`<option value="${esc(p)}">`).join("")}</datalist></div>
-    <div style="flex:1;min-width:140px"><label class="small" for="n-ch">方法</label><select id="n-ch" style="width:100%">${CHANNELS.map(c=>`<option>${c}</option>`).join("")}</select></div></div>
+    <div style="flex:1;min-width:140px"><label class="small" for="n-partner">相手</label><input type="text" id="n-partner" list="n-plist" placeholder="例：Raj" value="${esc(prefill||"")}"><datalist id="n-plist">${partners.map(p=>`<option value="${esc(p)}">`).join("")}</datalist></div>
+    <div style="flex:1;min-width:140px"><label class="small" for="n-ch">方法</label><select id="n-ch" style="width:100%">${CHANNELS.map(c=>`<option>${c}</option>`).join("")}</select></div>
+    <div style="flex:1;min-width:140px"><label class="small" for="n-min">話した時間</label><select id="n-min" style="width:100%">${MINUTES.map(m=>`<option value="${m}" ${m===15?"selected":""}>${m}分</option>`).join("")}</select></div></div>
    <label class="small" for="n-raw">話した内容（日本語のメモ・英語のチャットの貼り付け、どちらでもOK）</label>
    <textarea id="n-raw" style="min-height:180px" placeholder="例）Raj さんと来月の Zoom 会議の日程を決めた。IST の 11時＝日本の14時半。&#10;Raj: Kindly revert by EOD.&#10;Me: OK I will send you tomorrow.&#10;（自分の発言に Me: や 私: をつけると、AIが英語を直してくれます）"></textarea>
    <div class="row"><label class="btn sm" for="n-file" style="cursor:pointer">WhatsApp のトーク履歴（.txt）を読み込む</label><input type="file" id="n-file" accept=".txt,text/plain" hidden>
@@ -958,7 +968,7 @@ async function openNoteEditor(){
     body.querySelector("#n-file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{let txt=String(r.result||"");if(txt.length>40000){txt=txt.slice(-40000);toast("長いので、新しい方の部分だけ使います")}raw.value=(raw.value?raw.value+"\n":"")+txt};r.readAsText(f)};
     const im=body.querySelector("#n-img");if(im)im.onchange=e=>{const fs=[...e.target.files].filter(f=>f.size<=(lim.maxInputBytes||1e8));imgs=imgs.concat(fs).slice(0,lim.maxCount);
       body.querySelector("#n-thumbs").innerHTML=imgs.map(f=>`<img src="${URL.createObjectURL(f)}" alt="スクリーンショット">`).join("")};
-    const meta=()=>({date:body.querySelector("#n-date").value||today(),partner:body.querySelector("#n-partner").value.trim(),channel:body.querySelector("#n-ch").value,raw:raw.value.slice(-20000)});
+    const meta=()=>({date:body.querySelector("#n-date").value||today(),partner:body.querySelector("#n-partner").value.trim(),channel:body.querySelector("#n-ch").value,minutes:+body.querySelector("#n-min").value,raw:raw.value.slice(-20000)});
     const own=()=>body.querySelector("#n-own").value.split(/\n/).map(l=>l.split(/\s*[=＝]\s*/)).filter(p=>p[0]&&p[0].trim()).map(p=>({en:p[0].trim(),ja:(p[1]||"").trim(),note:"自分で足した表現"}));
     body.querySelector("#n-plain").onclick=()=>{const m=meta();const o=own();if(!m.raw.trim()&&!o.length){toast("内容を入力してください");return}
       saveNewNote(Object.assign(m,{title:(m.raw.trim().split(/\n/)[0]||"会話のメモ").slice(0,40),summary:m.raw.slice(0,140),topics:[],sentences:o,grammar:[],vocab:[],fixes:[]}))};
@@ -1013,16 +1023,18 @@ function showPicker(body,out,m,r){
   out.querySelector("#n-save").onclick=()=>{const keep=t=>(i)=>{const c=out.querySelector(`[data-pick="${t}-${i}"]`);return !c||c.checked};
     saveNewNote(Object.assign({},m,{title:r.title,summary:r.summary,topics:r.topics,sentences:r.sentences.filter((_,i)=>keep("s")(i)),fixes:r.fixes.filter((_,i)=>keep("f")(i)),grammar:r.grammar.filter((_,i)=>keep("g")(i)),vocab:r.vocab.filter((_,i)=>keep("v")(i))}))};
   out.scrollIntoView({behavior:"smooth",block:"start"})}
-function saveNewNote(n){
-  n.kind="note";n.id=Date.now().toString(36);n.createdAt=Date.now();
-  NOTES.unshift(n);saveNotesLocal();pushNote(n);
-  noteKeys(n).forEach(k=>{if(!S.srs[k])S.srs[k]={b:0,d:today()}});logMinutes(10,"note");save();
-  closeLesson();TAB="notes";render();toast(`保存しました（カード${noteCount(n)}枚）`);setTimeout(()=>openNote(n.id),300)}
+function saveNewNote(n,opt){opt=opt||{};
+  n.kind="note";n.id=Date.now().toString(36);n.createdAt=Date.now();ensurePerson(n.partner);
+  NOTES.unshift(n);NOTES.sort((a,b)=>(b.date+b.createdAt)>(a.date+a.createdAt)?1:-1);saveNotesLocal();pushNote(n);
+  noteKeys(n).forEach(k=>{if(!S.srs[k])S.srs[k]={b:0,d:today()}});if(!opt.quiet)logMinutes(10,"note");save();
+  closeLesson();TAB="notes";render();
+  if(opt.quiet){toast(`${n.partner} さんとの会話を記録しました（${n.minutes||0}分）`);return}
+  toast(`保存しました（カード${noteCount(n)}枚）`);setTimeout(()=>openNote(n.id),300)}
 
 /* --- ノートを開く・練習する --- */
 function openNote(id){const n=noteById(id);if(!n)return;
   openLesson(n.partner?n.partner+"さんとの会話":"会話ノート",n.date,()=>`<div class="stack">
-   <div><div class="row" style="gap:6px"><span class="chip">${esc(n.channel||"")}</span>${(n.topics||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div><h2 style="margin-top:6px">${esc(n.title)}</h2><p class="muted" style="margin-top:4px">${esc(n.summary)}</p></div>
+   <div><div class="row" style="gap:6px">${n.partner?`<button class="chip a" data-goperson style="border:none;cursor:pointer">${esc(n.partner)} さんのページ →</button>`:""}<span class="chip">${esc(n.channel||"")}</span>${n.minutes?`<span class="chip">${n.minutes}分</span>`:""}${(n.topics||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div><h2 style="margin-top:6px">${esc(n.title)}</h2><p class="muted" style="margin-top:4px">${esc(n.summary)}</p></div>
    <div class="row"><button class="btn accent" data-np="sgf">文カードで練習</button>${(n.vocab||[]).length?`<button class="btn" data-np="v">単語カード</button>`:""}<button class="btn" id="np-all">全部聞く</button>${SAMPLE?`<button class="btn" id="np-rp">AIと続きを話す</button>`:""}</div>
    ${(n.sentences||[]).length?`<div class="card"><h3>使える文</h3>${n.sentences.map(x=>`<div class="exline">${spkBtn(x.en)}<div class="t"><span class="en">${esc(x.en)}</span><span class="small">${esc(x.ja)}</span>${x.note?`<span class="small muted" style="display:block">${esc(x.note)}</span>`:""}</div></div>`).join("")}</div>`:""}
    ${(n.fixes||[]).length?`<div class="card"><h3>自分の英語をもっと自然に</h3>${n.fixes.map(x=>`<div class="fix"><span class="old">${esc(x.original)}</span><span class="row" style="gap:8px">${spkBtn(x.improved)}<span class="new en">${esc(x.improved)}</span></span><span class="small muted">${esc(x.why||"")}</span></div>`).join("")}</div>`:""}
@@ -1031,6 +1043,7 @@ function openNote(id){const n=noteById(id);if(!n)return;
    ${n.raw?`<details class="card"><summary class="small" style="cursor:pointer">元のメモ・チャットを見る</summary><pre style="white-space:pre-wrap;font-family:var(--f-body);font-size:13px;margin:8px 0 0">${esc(n.raw)}</pre></details>`:""}
    <div class="row"><button class="btn sm ghost" id="np-del">このノートを削除</button></div></div>`,
   body=>{
+    const gp=body.querySelector("[data-goperson]");if(gp)gp.onclick=()=>openPerson(n.partner);
     body.querySelectorAll("[data-np]").forEach(b=>b.onclick=()=>{const cards=noteKeys(n,b.dataset.np).map(cardFromKey).filter(Boolean);
       const back=()=>{logMinutes(Math.max(3,Math.round(cards.length*0.7)),"note");save();closeLesson();setTimeout(()=>openNote(id),50)};
       lessonCards(cards,b.dataset.np==="v"?"単語カード（ノート）":"文カード（ノート）",back)});
@@ -1111,11 +1124,125 @@ function openIntro(tab){let cur=tab||0;
     }
     draw()})}
 
+/* ============ 話す練習（毎日10分）と、話した相手の記録 ============ */
+const MINUTES=[5,10,15,20,30,45,60,90];
+const TALK_TOPICS=[
+ ["今日の仕事","What did you do at work today? Talk about your patients, your staff and anything interesting."],
+ ["自分の院","Explain your clinic to someone in India: where it is, what you offer, and what makes it special."],
+ ["今週の予定","Talk about your plans for this week. What will you do, and who will you meet?"],
+ ["インドでやりたいこと","What do you want to do in India? Talk about your ideas and why you are interested."],
+ ["横浜と愛媛","Talk about Yokohama, where you were born, and Ozu in Ehime, where your clinic is."],
+ ["健康のアドバイス","Give simple health advice for back pain or stiff shoulders to someone who works at a desk."],
+ ["最近うれしかったこと","Talk about something good that happened recently, and how you felt."]];
+function people(){if(!Array.isArray(S.people))S.people=[];return S.people}
+function ensurePerson(name){name=(name||"").trim();if(!name)return null;let p=people().find(x=>x.name===name);if(!p){p={name,org:"",memo:""};people().push(p)}return p}
+function personStats(name){const ns=NOTES.filter(n=>n.partner===name);return{count:ns.length,minutes:ns.reduce((a,n)=>a+(+n.minutes||0),0),last:ns.map(n=>n.date).sort().slice(-1)[0]||""}}
+function allPartners(){const s=new Set(people().map(p=>p.name));NOTES.forEach(n=>{if(n.partner)s.add(n.partner)});return [...s]}
+function speakingMinutes(){return Object.values(S.log).reduce((a,l)=>a+(l.s||0),0)+NOTES.reduce((a,n)=>a+(+n.minutes||0),0)}
+function speakTopic(w){
+  if(S.day<=3&&w)return{ja:"今週のテーマ「"+w.title+"」",en:w.speaking,task:true};
+  if(S.day===4){const v=phaseOf(S.week).n<=1?0:phaseOf(S.week).n===2?1:2;return{ja:"自己紹介（"+INTRO[v].label+"）",en:"Introduce yourself without looking at the script.",intro:v}}
+  const t=TALK_TOPICS[(S.week*7+S.day)%TALK_TOPICS.length];return{ja:t[0],en:t[1]}}
+function speakPrompt(topic,partner,cefr){const p=partner?people().find(x=>x.name===partner):null;
+  return `You are my English speaking partner${partner?`, playing ${partner}`:""}, a business person from India${p&&(p.org||p.memo)?` (about ${partner}: ${[p.org,p.memo].filter(Boolean).join(". ")})`:""}. I am Akihiro Iwata, a Japanese acupuncturist and judo therapist who runs a clinic in Ozu, Ehime, and I am learning English at CEFR ${cefr} level.
+Today's topic: ${topic.en}
+Talk with me for about 10 minutes. Use short, clear sentences at my level and ask me one question at a time. Use some Indian English expressions naturally. Do not correct my mistakes during the talk. If I say something in Japanese, tell me the English way to say it and continue.
+When I say "finish" or "終わり", stop and give feedback in simple Japanese: 1) good points (2 lines), 2) up to 4 of my sentences rewritten as natural English with a short reason, 3) three useful phrases for next time with Japanese translations.
+Start now with a friendly greeting and your first question.`}
+function lessonSpeak(w,done){
+  const cefr=w?w.cefr:phaseOf(S.week).cefr;const topic=speakTopic(w);let left=600,timer=null,heard="";
+  const partners=allPartners();
+  openLesson("話す練習 10分",`W${S.week}`,()=>`<div class="stack">
+   <div class="card stack" style="align-items:center;text-align:center">
+    <div class="eyebrow">Speaking time</div>
+    <div class="mono" id="sp-clock" style="font-size:52px;font-weight:600;line-height:1">10:00</div>
+    <div class="row" style="justify-content:center"><button class="btn primary" id="sp-start">▶ スタート</button><button class="btn" id="sp-reset">リセット</button></div>
+    <p class="small muted">10分間、英語で口を動かし続けることが目標です。止まってもOK、日本語が混ざってもOK。</p></div>
+   <div class="card stack"><div class="eyebrow">今日のお題</div><h3>${esc(topic.ja)}</h3><p class="en" style="font-size:17px">${esc(topic.en)}</p>
+    ${topic.intro!=null?`<div><button class="btn sm" id="sp-intro">自己紹介の原稿を開く</button></div>`:""}</div>
+   <h3>やり方を1つ選ぶ</h3>
+   <div class="card stack"><b>① Claude アプリの音声モードで話す（おすすめ）</b>
+    <p class="small muted">Claude がインドの方の役をして、お題について質問してくれます。最後に「終わり」と言うと、日本語でフィードバックがもらえます。</p>
+    ${partners.length?`<label class="small" for="sp-partner">相手の役（記録した人から選べます）</label><select id="sp-partner"><option value="">インドの取引先（おまかせ）</option>${partners.map(n=>`<option>${esc(n)}</option>`).join("")}</select>`:""}
+    ${SAMPLE?`<div><button class="btn accent" id="sp-inapp">このアプリの中でAIと話す（文字）</button></div>`:""}
+    <div id="sp-bridge"></div></div>
+   <div class="card stack"><b>② 今日インドの方と実際に話した</b><p class="small muted">それが今日の話す練習です。誰と何分話したかを記録しましょう。</p>
+    <div><button class="btn" id="sp-real">話した記録をつける</button></div></div>
+   <div class="card stack"><b>③ ひとりで話す</b><p class="small muted">お題について、次の順で話します。①結論を1文 → ②理由や具体例を2〜3文 → ③最後にもう一度まとめ。3回くり返すと、2回目からぐっと楽になります。</p>
+    ${HAS_MIC?`<div><button class="btn" id="sp-mic">🎤 話した英語を文字で確かめる</button></div><div id="sp-heard"></div>`:`<p class="small muted">iPhone のボイスメモで録音して、聞き直すのもおすすめです。</p>`}</div>
+   ${finishBtn("10分話した・完了")}</div>`,
+  body=>{
+    const clock=body.querySelector("#sp-clock"),st=body.querySelector("#sp-start");
+    const show=()=>{clock.textContent=String(Math.floor(left/60)).padStart(2,"0")+":"+String(left%60).padStart(2,"0")};
+    st.onclick=()=>{if(timer){clearInterval(timer);timer=null;st.textContent="▶ 再開";return}
+      st.textContent="❚❚ 一時停止";timer=setInterval(()=>{left--;show();if(left<=0){clearInterval(timer);timer=null;st.textContent="▶ スタート";left=0;speak("Time is up. Great job!");toast("10分たちました。おつかれさまでした")}},1000)};
+    body.querySelector("#sp-reset").onclick=()=>{clearInterval(timer);timer=null;left=600;show();st.textContent="▶ スタート"};
+    onClose=()=>{clearInterval(timer)};
+    const ib=body.querySelector("#sp-intro");if(ib)ib.onclick=()=>openIntro(topic.intro);
+    const drawBridge=()=>{const sel=body.querySelector("#sp-partner");claudeBridge(body.querySelector("#sp-bridge"),speakPrompt(topic,sel?sel.value:"",cefr),{title:"Claude アプリで10分話す",noPaste:true})};
+    drawBridge();const sel=body.querySelector("#sp-partner");if(sel)sel.onchange=drawBridge;
+    const ia=body.querySelector("#sp-inapp");if(ia)ia.onclick=()=>{const nm=(sel&&sel.value)||"Raj";
+      lessonRoleplay({week:S.week,cefr,scene:topic.en,title:topic.ja,grammar:{title:w?w.grammar.title:"自由"},vocab:w?w.vocab:[],dialogue:{lines:[{s:"B",name:nm}]},speaking:topic.ja+"："+topic.en},()=>{done()})};
+    body.querySelector("#sp-real").onclick=()=>openQuickLog("",()=>done("speak-real"));
+    const mc=body.querySelector("#sp-mic");if(mc)mc.onclick=async()=>{mc.disabled=true;mc.textContent="🎤 聞いています…";
+      try{const t=await listenOnce();heard+=(heard?" ":"")+t;body.querySelector("#sp-heard").innerHTML=`<div class="ai"><div class="small muted">あなたが話した英語</div><p class="en" style="font-size:16.5px">${esc(heard||"（聞き取れませんでした）")}</p>${heard?`<div style="margin-top:6px"><button class="btn sm" id="sp-fix">AI に自然な英語にしてもらう</button></div><div id="sp-fixout"></div>`:""}</div>`;
+        const fx=body.querySelector("#sp-fix");if(fx)fx.onclick=()=>askAI(`あなたは英語講師です。日本人学習者（CEFR ${cefr}）が「${topic.en}」というお題で話した英語（音声認識の文字起こし）です。\n\n${heard}\n\n言いたかったことを、同じレベルの自然な英語に直した全文と、大事な直しを3つまで、やさしい日本語で教えてください。`,body.querySelector("#sp-fixout"))}
+      catch(e){toast(e==="not-allowed"||e==="service-not-allowed"?"マイクの使用を許可してください（設定 → Safari → マイク）":"うまく聞き取れませんでした")}
+      mc.disabled=false;mc.textContent="🎤 続けて話す"};
+    bindFinish(body,done)})}
+
+/* --- 話した記録だけ残す（AI なし・30秒） --- */
+function openQuickLog(name,after){
+  const partners=allPartners();
+  openLesson("話した記録","",`<div class="stack">
+   <p class="small muted">誰と、どうやって、何分くらい話したかを残します。話した内容はひとことでOK。</p>
+   <div class="row"><div style="flex:1;min-width:140px"><label class="small" for="q-date">日付</label><input type="date" id="q-date" value="${today()}"></div>
+    <div style="flex:1;min-width:140px"><label class="small" for="q-partner">相手</label><input type="text" id="q-partner" list="q-plist" value="${esc(name||"")}" placeholder="例：Raj"><datalist id="q-plist">${partners.map(p=>`<option value="${esc(p)}">`).join("")}</datalist></div></div>
+   <div class="row"><div style="flex:1;min-width:140px"><label class="small" for="q-ch">方法</label><select id="q-ch" style="width:100%">${CHANNELS.map(c=>`<option>${c}</option>`).join("")}</select></div>
+    <div style="flex:1;min-width:140px"><label class="small" for="q-min">話した時間</label><select id="q-min" style="width:100%">${MINUTES.map(m=>`<option value="${m}" ${m===15?"selected":""}>${m}分</option>`).join("")}</select></div></div>
+   <label class="small" for="q-topic">話したこと（ひとこと）</label><input type="text" id="q-topic" placeholder="例：来月の会議の日程、Web制作の見積もり">
+   <label class="small" for="q-own">言えなかったこと・覚えたい表現（任意。1行に「英語 = 日本語」）</label>
+   <textarea id="q-own" style="min-height:80px" placeholder="Kindly revert by EOD. = 今日中にお返事ください。"></textarea>
+   <div class="row"><button class="btn primary" id="q-save">記録する</button></div>
+   <p class="note">内容をくわしく整理して練習カードにしたいときは、「会話ノート」の「＋ 会話を記録する」を使ってください。</p></div>`,
+  body=>{body.querySelector("#q-save").onclick=()=>{const partner=body.querySelector("#q-partner").value.trim();if(!partner){toast("相手の名前を入れてください");return}
+    const topic=body.querySelector("#q-topic").value.trim();
+    const own=body.querySelector("#q-own").value.split(/\n/).map(l=>l.split(/\s*[=＝]\s*/)).filter(p=>p[0]&&p[0].trim()).map(p=>({en:p[0].trim(),ja:(p[1]||"").trim(),note:"自分で足した表現"}));
+    const n={date:body.querySelector("#q-date").value||today(),partner,channel:body.querySelector("#q-ch").value,minutes:+body.querySelector("#q-min").value,title:topic||"会話",summary:topic,topics:[],raw:"",quick:true,sentences:own,grammar:[],vocab:[],fixes:[]};
+    saveNewNote(n,{quiet:true});if(after)after();else setTimeout(()=>openPerson(partner),80)}})}
+
+/* --- 相手ごとのページ --- */
+function openPerson(name){const p=ensurePerson(name);save();
+  const ns=NOTES.filter(n=>n.partner===name);const st=personStats(name);
+  openLesson(name+" さん","",`<div class="stack">
+   <div class="stats"><div class="stat"><b>${st.count}</b><span>話した回数</span></div><div class="stat"><b>${st.minutes}</b><span>合計（分）</span></div><div class="stat"><b class="small">${esc(st.last||"—")}</b><span>最後に話した日</span></div><div class="stat"><b>${ns.reduce((a,n)=>a+noteCount(n),0)}</b><span>カード</span></div></div>
+   <div class="card stack"><h3>この人のこと</h3>
+    <label class="small" for="pp-org">会社・立場</label><input type="text" id="pp-org" value="${esc(p.org||"")}" placeholder="例：Bengaluru の病院グループ・経営企画">
+    <label class="small" for="pp-memo">メモ（家族・好きな話題・注意すること など）</label><textarea id="pp-memo" style="min-height:80px;font-family:var(--f-body);font-size:16px" placeholder="例：クリケット好き。娘さんが日本に興味。">${esc(p.memo||"")}</textarea>
+    <div><button class="btn sm" id="pp-save">保存</button></div></div>
+   <div class="row"><button class="btn accent" id="pp-log">この人と話した記録をつける</button><button class="btn" id="pp-note">くわしく記録（AIで整理）</button><button class="btn" id="pp-prep">次に話すときの準備</button></div>
+   <div id="pp-out"></div>
+   <h3>会話の記録</h3>
+   ${ns.length?`<div class="cardgrid">${ns.map(n=>`<button class="notecard" data-pnote="${esc(n.id)}"><div class="spread"><span class="small mono muted">${esc(n.date)}</span><span class="row" style="gap:6px"><span class="chip">${esc(n.channel||"")}</span>${n.minutes?`<span class="chip">${n.minutes}分</span>`:""}</span></div><h3 style="margin:4px 0 2px">${esc(n.title||"会話")}</h3><p>${esc(n.summary||"")}</p></button>`).join("")}</div>`:`<p class="small muted">まだ記録はありません。</p>`}
+  </div>`,
+  body=>{body.querySelector("#pp-save").onclick=()=>{p.org=body.querySelector("#pp-org").value.trim();p.memo=body.querySelector("#pp-memo").value.trim();save();toast("保存しました")};
+    body.querySelector("#pp-log").onclick=()=>openQuickLog(name);
+    body.querySelector("#pp-note").onclick=()=>openNoteEditor(name);
+    body.querySelector("#pp-prep").onclick=()=>{const w=W(S.week);const hist=ns.slice(0,5).map(n=>`- ${n.date}（${n.channel||""}）${n.title}：${n.summary||""}`).join("\n")||"（まだ記録なし）";
+      askAI(`あなたは英語講師です。日本人学習者の岩田章弘さん（愛媛県大洲市の鍼灸整骨院の代表、CEFR ${w?w.cefr:phaseOf(S.week).cefr}）が、インドの ${name} さんと次に話す準備を手伝ってください。\n${name} さんについて：${[p.org,p.memo].filter(Boolean).join("／")||"情報なし"}\nこれまでの会話：\n${hist}\n\n次の形で、英語とやさしい日本語訳で答えてください。\n## 最初のあいさつと雑談（2文）\n## 前回の続きで聞くとよい質問（3つ）\n## 使えそうなフレーズ（5つ）\n## 気をつけること（1〜2行・日本語）`,body.querySelector("#pp-out"),{title:"Claude に準備を手伝ってもらう"})};
+    body.querySelectorAll("[data-pnote]").forEach(b=>b.onclick=()=>openNote(b.dataset.pnote))})}
+function peopleSection(){const ps=allPartners();if(!ps.length)return"";
+  const rows=ps.map(n=>({n,...personStats(n)})).sort((a,b)=>(b.last||"").localeCompare(a.last||""));
+  return `<div class="card stack"><div class="spread"><h3>話した相手</h3><span class="small muted">${ps.length}人</span></div>
+   <div class="tablewrap"><table><tr><th>名前</th><th>回数</th><th>合計</th><th>最後</th></tr>${rows.map(r=>{const p=people().find(x=>x.name===r.n)||{};return `<tr data-person="${esc(r.n)}" style="cursor:pointer"><td><b>${esc(r.n)}</b>${p.org?`<br><span class="small muted">${esc(p.org)}</span>`:""}</td><td class="mono">${r.count}</td><td class="mono">${r.minutes}分</td><td class="mono small">${esc((r.last||"").slice(5).replace("-","/"))}</td></tr>`}).join("")}</table></div>
+   <p class="small muted">名前をタップすると、その人との記録・メモ・次に話す準備が見られます。</p></div>`}
+
 /* ============ イベント ============ */
 document.addEventListener("click",e=>{
   const s=e.target.closest("[data-say]");if(s){e.stopPropagation();stopSpeak();speak(s.dataset.say);return}
   const tb=e.target.closest(".nav [data-tab]");if(tb){TAB=tb.dataset.tab;render();window.scrollTo(0,0);return}
   const tk=e.target.closest("#app [data-task]");if(tk){const i=+tk.dataset.task;runTask(DAYS[S.day].tasks[i],W(S.week),i);return}
+  const pe=e.target.closest("#app [data-person]");if(pe){openPerson(pe.dataset.person);return}
   const nt=e.target.closest("#app [data-note]");if(nt){openNote(nt.dataset.note);return}
   const wk=e.target.closest("#app [data-week]");if(wk){openWeek(+wk.dataset.week);return}
   const a=e.target.closest("#app [data-act]");if(!a)return;
@@ -1124,6 +1251,7 @@ document.addEventListener("click",e=>{
   else if(act==="addscore"){const r=$("#sc-res").value.trim();if(!r){toast("結果を入力してください");return}S.scores.push({date:$("#sc-date").value,test:$("#sc-test").value,result:r});save();render();toast("記録しました")}
   else if(act==="newnote"){openNoteEditor()}
   else if(act==="intro"){openIntro(0)}
+  else if(act==="quicklog"){openQuickLog("")}
   else if(act==="notereview"){lessonCards(dueNoteKeys().slice(0,30).map(cardFromKey).filter(Boolean),"ノートの復習",()=>{logMinutes(10,"note");save();closeLesson()},true)}
   else if(act==="backup"||act==="backupcopy"){const data=JSON.stringify({app:"eigo52",v:1,savedAt:new Date().toISOString(),state:S,notes:NOTES});
     if(act==="backup"){try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type:"application/json"}));a.download="eigo52-backup-"+today()+".json";document.body.appendChild(a);a.click();a.remove();toast("保存しました（ファイルAppの「ダウンロード」）")}catch(e){toast("保存できませんでした。コピーを使ってください")}}
