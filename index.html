@@ -421,7 +421,7 @@ const LSKEY="eigo52-state-v1";
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const addDays=(s,n)=>{const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const diffDays=(a,b)=>Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/864e5);
-function fresh(){return{v:1,startDate:today(),week:1,day:1,doneToday:{date:"",tasks:[]},srs:{},log:{},tests:{},scores:[],diary:[],people:[],settings:{accent:"en-US",rate:0.9,dir:"en"},updatedAt:0}}
+function fresh(){return{v:1,startDate:today(),week:1,day:1,doneToday:{date:"",tasks:[]},srs:{},log:{},tests:{},scores:[],diary:[],people:[],settings:{accent:"en-US",rate:0.95,dir:"en"},updatedAt:0}}
 let S=fresh();
 let DB=null, UID=null, SAMPLE=null, saveTimer=null;
 function lsGet(){try{const t=localStorage.getItem(LSKEY);return t?JSON.parse(t):null}catch(e){return null}}
@@ -455,16 +455,27 @@ async function initStore(){
 let VOICES=[];
 function loadVoices(){try{VOICES=speechSynthesis.getVoices()||[]}catch(e){VOICES=[]}}
 if("speechSynthesis" in window){loadVoices();speechSynthesis.onvoiceschanged=()=>{loadVoices();if(typeof TAB!=="undefined"&&TAB==="guide")render()}}
-function pickVoice(){const a=S.settings.accent;const en=VOICES.filter(v=>/^en/i.test(v.lang));
-  if(S.settings.voiceName){const f=en.find(v=>v.name===S.settings.voiceName);if(f)return f}
-  return en.find(v=>v.lang.replace("_","-")===a&&/(Samantha|Daniel|Rishi|Google|Premium|Enhanced)/.test(v.name))||en.find(v=>v.lang.replace("_","-")===a)||en.find(v=>/en-US/.test(v.lang))||en[0]||null}
+/* 声の良さを点数にして、いちばん滑らかな声を選ぶ。
+   iPhone・iPad の声は voiceURI に premium（プレミアム）／enhanced（拡張）／compact（標準）が入っている */
+const NOVELTY=/(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Junior|Kathy|Ralph|Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|ささやき|オルガン|スーパースター|トリノイド|ベル|道化|震え|バブル|チェロ|アルバート|ボイン|ニュース|おばあ|おじい|ジュニア|フレッド|キャシー|ラルフ|ザーボックス)/i;
+const NATURAL=/(Ava|Zoe|Samantha|Allison|Susan|Evan|Nathan|Tom|Noelle|Joelle|Serena|Daniel|Kate|Oliver|Stephanie|Jamie|Isha|Rishi|Sangeeta|Karen|Lee|Moira|Tessa|Google|Natural|Neural|Online)/i;
+function voiceQuality(v){const s=(v.voiceURI||"")+" "+v.name;return /premium|プレミアム/i.test(s)?2:/enhanced|拡張|natural|neural|online/i.test(s)?1:0}
+function voiceScore(v,accent){if(NOVELTY.test(v.name))return -999;const lang=v.lang.replace("_","-");
+  return voiceQuality(v)*100+(lang===accent?60:/^en-(US|GB)/.test(lang)?15:0)+(NATURAL.test(v.name)?25:0)+(/Google/.test(v.name)?10:0)}
+function goodVoices(){const a=S.settings.accent;return VOICES.filter(v=>/^en/i.test(v.lang)&&!NOVELTY.test(v.name)).sort((x,y)=>voiceScore(y,a)-voiceScore(x,a))}
+function pickVoice(){const en=goodVoices();
+  if(S.settings.voiceName){const f=en.find(v=>v.name===S.settings.voiceName&&(!S.settings.voiceURI||v.voiceURI===S.settings.voiceURI))||en.find(v=>v.name===S.settings.voiceName);if(f)return f}
+  return en[0]||null}
 let speakToken=0;
-function stopSpeak(){speakToken++;try{speechSynthesis.cancel()}catch(e){}}
+let lastCancel=0;
+function stopSpeak(){speakToken++;try{if(speechSynthesis.speaking||speechSynthesis.pending){speechSynthesis.cancel();lastCancel=Date.now()}}catch(e){}}
 function speak(text,rate){return new Promise(res=>{
   if(!("speechSynthesis" in window)){res();return}
-  try{const u=new SpeechSynthesisUtterance(text);const v=pickVoice();if(v){u.voice=v;u.lang=v.lang}else u.lang=S.settings.accent;
+  // 止めた直後にすぐ話し始めると、iPhone では出だしが切れたり途切れたりするので少し待つ
+  const wait=Math.max(0,120-(Date.now()-lastCancel));
+  setTimeout(()=>{try{const u=new SpeechSynthesisUtterance(String(text).replace(/\s+/g," ").trim());u.pitch=1;u.volume=1;const v=pickVoice();if(v){u.voice=v;u.lang=v.lang}else u.lang=S.settings.accent;
     u.rate=rate||S.settings.rate;let done=false;const fin=()=>{if(!done){done=true;res()}};
-    u.onend=fin;u.onerror=fin;try{speechSynthesis.resume()}catch(e){}setTimeout(fin,1500+text.length*140/(u.rate||1));speechSynthesis.speak(u)}catch(e){res()}})}
+    u.onend=fin;u.onerror=fin;try{speechSynthesis.resume()}catch(e){}setTimeout(fin,2500+String(text).length*120/(u.rate||1));speechSynthesis.speak(u)}catch(e){res()}},wait)})}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const SPK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>';
 function spkBtn(text){return `<button class="speak" data-say="${esc(text)}" aria-label="読み上げ">${SPK}</button>`}
@@ -682,9 +693,10 @@ function viewGuide(){
    <label class="small" for="set-accent">読み上げの英語</label>
    <select id="set-accent"><option value="en-US">アメリカ英語</option><option value="en-GB">イギリス英語</option><option value="en-IN">インド英語（端末に声がある場合）</option></select>
    <label class="small" for="set-voice">声の種類（この端末に入っている英語の声）</label>
-   <select id="set-voice"><option value="">おまかせ</option>${VOICES.filter(v=>/^en/i.test(v.lang)).sort((a,b)=>a.lang<b.lang?-1:1).map(v=>`<option value="${esc(v.name)}" ${S.settings.voiceName===v.name?"selected":""}>${esc(v.name)}（${esc(v.lang)}）${/enhanced|premium|拡張|プレミアム/i.test(v.name)?" ★高音質":""}</option>`).join("")}</select>
+   <select id="set-voice"><option value="">おまかせ（いちばん滑らかな声を自動で選ぶ）</option>${goodVoices().map(v=>`<option value="${esc(v.name)}|${esc(v.voiceURI||"")}" ${S.settings.voiceName===v.name&&(!S.settings.voiceURI||S.settings.voiceURI===v.voiceURI)?"selected":""}>${["","◎ ","★ "][voiceQuality(v)]}${esc(v.name)}（${esc(v.lang)}）${["","・拡張","・プレミアム"][voiceQuality(v)]}</option>`).join("")}</select>
+   ${(()=>{const v=pickVoice();const q=v?voiceQuality(v):0;return `<p class="small ${q?"":"muted"}">いま使っている声：<b>${v?esc(v.name):"なし"}</b>${q===2?"（プレミアム・いちばん滑らか）":q===1?"（拡張・滑らか）":"（標準の声。少し機械っぽく聞こえます）"}</p>${q<2?`<p class="note">もっと滑らかにするには、iPhone・iPad の「設定」→「アクセシビリティ」→「読み上げコンテンツ」→「声」→「英語」→「英語（アメリカ）」で、<b>Ava・Zoe・Evan などの「プレミアム」</b>（または「拡張」）をダウンロードしてください。ダウンロード後にアプリを開き直すと、自動でその声に切り替わります。</p>`:""}`})()}
    <label class="small" for="set-rate">読み上げの速さ</label>
-   <select id="set-rate"><option value="0.7">ゆっくり（0.7）</option><option value="0.8">少しゆっくり（0.8）</option><option value="0.9">ふつうより少し遅め（0.9）</option><option value="1">ふつう（1.0）</option></select>
+   <select id="set-rate"><option value="0.7">ゆっくり（0.7）</option><option value="0.8">少しゆっくり（0.8）</option><option value="0.9">ふつうより少し遅め（0.9）</option><option value="0.95">ほんの少し遅め（0.95・おすすめ）</option><option value="1">ふつう（1.0・いちばん自然）</option></select>
    <label class="small" for="set-start">学習を始めた日</label><input type="date" id="set-start" value="${esc(S.startDate)}">
    <div class="row"><button class="btn sm" data-act="testvoice">声を試す</button></div>
    <p class="small muted">${DB?"記録は claude.ai のアカウントに保存され、スマホとパソコンで同じ記録が使えます。":(syncCfg()?"記録はこの端末と、合言葉でつないだ同期先に保存されています。":"記録はこの端末の中に保存されています。下の「iPhone と iPad をつなぐ」で、2台の記録をそろえられます。")}</p>
@@ -1408,8 +1420,8 @@ function restoreBackup(txt){const d=parseJSONLoose(txt);if(!d||d.app!=="eigo52"|
   S=merge(d.state);NOTES=Array.isArray(d.notes)?d.notes:[];save();saveNotesLocal();NOTES.forEach(n=>pushNote(n));render();toast("バックアップを読み込みました")}
 document.addEventListener("change",e=>{
   if(e.target.id==="bk-file"&&e.target.files[0]){const r=new FileReader();r.onload=()=>restoreBackup(String(r.result||""));r.readAsText(e.target.files[0])}
-  if(e.target.id==="set-accent"){S.settings.accent=e.target.value;save();speak("This is how I sound.")}
-  if(e.target.id==="set-voice"){S.settings.voiceName=e.target.value;save();speak("Hello, I'm Akihiro. Nice to meet you.")}
+  if(e.target.id==="set-accent"){S.settings.accent=e.target.value;S.settings.voiceName="";S.settings.voiceURI="";save();render();speak("This is how I sound.")}
+  if(e.target.id==="set-voice"){const [nm,uri]=e.target.value.split("|");S.settings.voiceName=nm||"";S.settings.voiceURI=uri||"";save();render();speak("Hello, I'm Akihiro. Nice to meet you.")}
   if(e.target.id==="set-rate"){S.settings.rate=+e.target.value;save()}
   if(e.target.id==="set-start"&&e.target.value){S.startDate=e.target.value;save()}
 });
