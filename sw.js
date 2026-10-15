@@ -1,7 +1,7 @@
 // 英語52週トレーニング：オフラインでも開けるようにする
-const VERSION = "9fc5894829";
+const VERSION = "e66cf55632";
 const CACHE = "eigo52-" + VERSION;
-const FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "data/phase1.js", "data/phase2.js", "data/phase3.js", "data/phase4.js", "img/aki-base.webp"];
+const FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "data/phase1.js", "data/phase2.js", "data/phase3.js", "data/phase4.js", "img/aki-base.webp", "img/aki-cheer.webp", "img/aki-listen.webp", "img/aki-study.webp", "img/aki-talk.webp", "img/aki-think.webp", "img/aki-wave.webp", "img/aki-write.webp", "img/hero-sky.webp", "img/ic-grammar.webp", "img/ic-input.webp", "img/ic-review.webp", "img/ic-roleplay.webp", "img/ic-sentences.webp", "img/ic-shadow.webp", "img/ic-speak.webp", "img/ic-test.webp", "img/ic-vocab.webp", "img/ic-writing.webp", "img/tab-today.webp"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {
