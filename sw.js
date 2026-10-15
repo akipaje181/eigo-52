@@ -1,7 +1,7 @@
 // 英語52週トレーニング：オフラインでも開けるようにする
-const VERSION = "a6a568076a";
+const VERSION = "9fc5894829";
 const CACHE = "eigo52-" + VERSION;
-const FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "data/phase1.js", "data/phase2.js", "data/phase3.js", "data/phase4.js"];
+const FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "data/phase1.js", "data/phase2.js", "data/phase3.js", "data/phase4.js", "img/aki-base.webp"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {

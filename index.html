@@ -344,7 +344,7 @@ h2{font-weight:800}
 .back{border:none;background:var(--surface);box-shadow:var(--shadow)}
 .top{align-items:center}
 .hello{display:flex;align-items:center;gap:12px}
-.hello .mascot{width:64px;height:64px;object-fit:contain;flex:none}
+.hello .mascot{width:auto;height:88px;object-fit:contain;flex:none;margin-block:-8px}
 .mascot-side{display:flex;gap:12px;align-items:center}
 .mascot-side img{width:84px;height:auto;flex:none}
 .stamp{width:54px;height:54px;object-fit:contain}
@@ -506,9 +506,11 @@ function cardFromKey(k){const iv=k.match(/^i(\d)-(\d+)$/);if(iv)return introCard
 function dueKeys(){const t=today();return Object.keys(S.srs).filter(k=>S.srs[k].d<=t).sort((a,b)=>S.srs[a].d<S.srs[b].d?-1:1)}
 
 /* ============ 画像（届いたものから順に入れる。ないものは絵文字・SVG のまま） ============ */
-const IMG_HAVE=new Set([]);
+const IMG_HAVE=new Set(["aki-base"]);
 const imgURL=n=>"img/"+n+".webp";
-function pic(n,cls,alt){return IMG_HAVE.has(n)?`<img class="${cls||""}" src="${imgURL(n)}" alt="${esc(alt||"")}" decoding="async">`:""}
+// あき先生のポーズがまだ無いときは、基本の立ち姿（aki-base）で代用する
+const imgName=n=>IMG_HAVE.has(n)?n:(/^aki-/.test(n)&&IMG_HAVE.has("aki-base")?"aki-base":null);
+function pic(n,cls,alt){const m=imgName(n);return m?`<img class="${cls||""}" src="${imgURL(m)}" alt="${esc(alt||"")}" decoding="async">`:""}
 const TASK_EMOJI={grammar:"📘",vocab:"🔤",sentences:"⚡",shadow:"🎧",review:"🔁",writing:"✏️",test:"📝",roleplay:"💬",input:"👂",speak:"🗣️"};
 function taskIcon(type){return IMG_HAVE.has("ic-"+type)?pic("ic-"+type,"",""):(TASK_EMOJI[type]||"•")}
 function navImages(){document.querySelectorAll(".nav [data-tab]").forEach(b=>{const n="tab-"+b.dataset.tab;if(IMG_HAVE.has(n)&&!b.querySelector("img")){const s=b.querySelector("svg");if(s)s.outerHTML=pic(n,"","")}})}
@@ -814,7 +816,7 @@ function lessonShadow(w,step,done){
   const speakers=[...new Set(lines.map(l=>l.s))];
   function enClass(){return (st==="listen"||st==="shadow")?"en blur":"en"}
   function draw(body){
-    body.innerHTML=`<div class="stack"><div><div class="eyebrow">${esc(w.scene)}</div><h2>${esc(w.dialogue.title)}</h2></div>
+    body.innerHTML=`<div class="stack"><div class="mascot-side">${pic("aki-listen","","")}<div><div class="eyebrow">${esc(w.scene)}</div><h2>${esc(w.dialogue.title)}</h2></div></div>
      <div class="steps">${Object.keys(SHADOWSTEP).map(k=>`<button data-st="${k}" class="${k===st?"on":""}">${SHADOWSTEP[k]}</button>`).join("")}</div>
      <p class="note">${{listen:"英文を見ずに2回聞きます。わからなくても大丈夫。日本語訳で内容をつかみます。",read:"英文を見ながら聞き、わからない単語を確認します。",overlap:"英文を見ながら、音声と同時に声を重ねて読みます（オーバーラッピング）。3回。",shadow:"英文を見ずに、音声の0.5秒あとを影のように追いかけて言います。3回。",role:"相手のセリフは音声が読み、あなたの番（緑）は止まります。英文を見ずに言えたら合格。"}[st]}</p>
      ${st==="role"&&speakers.length>1?`<div class="row"><span class="small">あなたの役：</span>${speakers.map(s=>{const nm=(lines.find(l=>l.s===s)||{}).name||s;return `<button class="btn sm ${role===s?"primary":""}" data-role="${s}">${esc(nm)}</button>`}).join("")}</div>`:""}
@@ -956,7 +958,7 @@ function lessonRoleplay(w,done){
 
 /* --- 耳だけ学習 --- */
 function lessonInput(done){const p=phaseOf(S.week);const w=W(S.week);
-  openLesson("耳だけ学習","",`<div class="stack"><p>今日はアプリの外で<b>20分</b>、英語を聞きます。スマホをポケットに入れて、施術の合間や移動中に。</p>
+  openLesson("耳だけ学習","",`<div class="stack">${pic("aki-listen","empty-img","")}<p>今日はアプリの外で<b>20分</b>、英語を聞きます。スマホをポケットに入れて、施術の合間や移動中に。</p>
    ${w?`<div class="card stack"><h3>① 今週の会話を聞き流す（5分）</h3><p class="small muted">${esc(w.dialogue.title)}</p><div><button class="btn sm" id="loop">▶ 3回くり返し再生</button></div></div>`:""}
    <div class="card stack"><h3>② レベルに合った音声（15分）</h3><div class="res">${p.res.map(r=>`<div><b>${esc(r[0])}</b><span class="small muted">${esc(r[1])}</span></div>`).join("")}</div>
    <p class="small"><a href="https://learningenglish.voanews.com/" target="_blank" rel="noopener">VOA Learning English</a> ／ <a href="https://www.bbc.co.uk/learningenglish/" target="_blank" rel="noopener">BBC Learning English</a> ／ <a href="https://www.nhk.or.jp/gogaku/" target="_blank" rel="noopener">NHKゴガク</a></p></div>
