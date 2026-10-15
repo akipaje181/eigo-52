@@ -506,7 +506,7 @@ function cardFromKey(k){const iv=k.match(/^i(\d)-(\d+)$/);if(iv)return introCard
 function dueKeys(){const t=today();return Object.keys(S.srs).filter(k=>S.srs[k].d<=t).sort((a,b)=>S.srs[a].d<S.srs[b].d?-1:1)}
 
 /* ============ 画像（届いたものから順に入れる。ないものは絵文字・SVG のまま） ============ */
-const IMG_HAVE=new Set(["aki-base","aki-wave","aki-cheer","aki-think","aki-talk","aki-study","aki-write","aki-listen","ic-grammar","ic-vocab","ic-sentences","ic-shadow","ic-review","ic-writing","ic-test","ic-roleplay","ic-input","ic-speak","hero-sky"]);
+const IMG_HAVE=new Set(["aki-base","aki-wave","aki-cheer","aki-think","aki-talk","aki-study","aki-write","aki-listen","ic-grammar","ic-vocab","ic-sentences","ic-shadow","ic-review","ic-writing","ic-test","ic-roleplay","ic-input","ic-speak","hero-sky","tab-today","tab-notes","tab-map","tab-record","tab-guide","stamp-1","stamp-2","stamp-3","stamp-4","fx-done","empty-notes"]);
 const imgURL=n=>"img/"+n+".webp";
 // あき先生のポーズがまだ無いときは、基本の立ち姿（aki-base）で代用する
 const imgName=n=>IMG_HAVE.has(n)?n:(/^aki-/.test(n)&&IMG_HAVE.has("aki-base")?"aki-base":null);
