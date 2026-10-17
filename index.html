@@ -410,6 +410,23 @@ h2{font-weight:800}
 .mistake .ng i{background:var(--red-soft);color:var(--red)}.mistake .ng .en{text-decoration:line-through;color:var(--muted)}
 .mistake .okk i{background:var(--green-soft);color:var(--green)}.mistake .okk .en{font-weight:700;color:var(--green)}
 .cardtip{text-align:left;font-size:14px;background:var(--yellow-soft);color:#5E4300;border-radius:14px;padding:8px 12px;max-width:520px;line-height:1.6}
+.dchip{padding:6px 0 5px;gap:1px}
+.dchip em{font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.02em}
+.dchip i{font-size:12px;font-weight:800}
+.dchip.full{background:var(--green);border-color:var(--green);color:#fff}
+.dchip.full i{font-size:15px}
+.dchip.miss{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+.dchip.cur{border-color:var(--indigo);color:var(--indigo-2);background:var(--sky-soft)}
+.dchip.todo{color:var(--muted);opacity:.75}
+.dchip.sel{box-shadow:0 0 0 3px var(--accent)}
+.missnote{margin:0;font-size:12.5px;font-weight:700;color:var(--red);background:var(--red-soft);border-radius:10px;padding:6px 10px}
+.reviewbar.ok{background:var(--green-soft);color:#0F6B4F}
+.reviewbar.ng{background:var(--red-soft);color:#9B2C33}
+.task.miss{background:var(--red-soft)}
+.task.miss .ic{box-shadow:0 0 0 2px var(--red)}
+.tstate{font-style:normal;font-size:10.5px;font-weight:800;border-radius:999px;padding:0 7px;margin-left:6px;vertical-align:1px}
+.tstate.ok{background:var(--green);color:#fff}
+.tstate.ng{background:var(--red);color:#fff}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -605,12 +622,21 @@ function dayDoneList(w,d){if(!S.dayDone)S.dayDone={};return S.dayDone[dayKey(w,d
 function dayState(w,d){const n=DAYS[d].tasks.length,k=dayDoneList(w,d).length;return k>=n?"full":k>0?"part":"none"}
 function markDayDone(w,d,ti){if(!S.dayDone)S.dayDone={};const k=dayKey(w,d);const a=S.dayDone[k]||(S.dayDone[k]=[]);if(!a.includes(ti))a.push(ti);
   if(w===S.week&&d===S.day){if(S.doneToday.date!==today())S.doneToday={date:today(),tasks:[]};if(!S.doneToday.tasks.includes(ti))S.doneToday.tasks.push(ti)}}
+/* 日の状態：完了／未完了（過ぎた日で残りあり）／今日／これから */
+function dayInfo(w,d){const n=DAYS[d].tasks.length,k=dayDoneList(w,d).length;
+  const past=w<S.week||(w===S.week&&d<S.day),cur=w===S.week&&d===S.day;
+  if(k>=n)return{cls:"full",icon:"✓",label:"完了",left:0,n,k};
+  if(past)return{cls:"miss",icon:"あと"+(n-k),label:"未完了",left:n-k,n,k};
+  if(cur)return{cls:"cur"+(k?" part":""),icon:k+"/"+n,label:"今日",left:n-k,n,k};
+  return{cls:"todo",icon:"",label:"これから",left:n-k,n,k}}
 function weekStrip(vw){
   const maxW=S.week;
   const nav=vw.week>1||vw.week<maxW;
   return `<div class="weekstrip"><b class="small">Week ${vw.week}「${esc((W(vw.week)||{}).title||OUTLINE[vw.week-1])}」の7日間</b>
    <div class="days">${[1,2,3,4,5,6,7].map(d=>{const st=dayState(vw.week,d);const cur=vw.week===S.week&&d===S.day;const sel=vw.day===d;
-     return `<button class="dchip ${st} ${cur?"cur":""} ${sel?"sel":""}" data-vday="${d}"><span>${d}日目</span><i>${st==="full"?"✓":st==="part"?"◐":cur?"●":""}</i></button>`}).join("")}</div>
+     const di=dayInfo(vw.week,d);
+     return `<button class="dchip ${di.cls} ${sel?"sel":""}" data-vday="${d}" aria-label="${d}日目 ${di.label}"><span>${d}日目</span><i>${di.icon}</i><em>${di.label}</em></button>`}).join("")}</div>
+   ${(()=>{const miss=[1,2,3,4,5,6,7].filter(d=>dayInfo(vw.week,d).cls==="miss");return miss.length?`<p class="missnote">⚠ 未完了の日があります：${miss.map(d=>d+"日目").join("・")}（タップすると残りの課題が見られます）</p>`:""})()}
    ${nav?`<div class="spread"><button class="btn sm ghost" data-act="vprev" ${vw.week<=1?"disabled":""}>← 前の週</button><button class="btn sm ghost" data-act="vnext" ${vw.week>=maxW?"disabled":""}>次の週 →</button></div>`:""}</div>`}
 function streak(){let n=0,d=today();if(!S.log[d])d=addDays(d,-1);while(S.log[d]&&S.log[d].m>0){n++;d=addDays(d,-1)}return n}
 function totalMin(){return Object.values(S.log).reduce((a,b)=>a+(b.m||0),0)}
@@ -649,9 +675,12 @@ function viewToday(){
   <div class="tgrid"><div class="ta stack">${boardingPass(w,behind)}
   <div class="phases">${PHASES.map(p=>`<div class="${phaseOf(S.week).n===p.n?"on":""}">${IMG_HAVE.has("stamp-"+p.n)?pic("stamp-"+p.n,"stamp",""):""}<b>PHASE ${p.n} · ${p.cefr}</b>${p.name}</div>`).join("")}</div></div>
   <div class="tb stack">${weekStrip(vw)}
-  ${isCur?"":`<div class="reviewbar"><div><b>Week ${vw.week}・${vw.day}日目を見ています</b><p class="small">✓ は終わった課題です。もう一度やっても大丈夫。記録はこの日に付きます。</p></div><button class="btn sm primary" data-act="vtoday">今日（W${S.week}・${S.day}日目）に戻る</button></div>`}
+  ${isCur?"":(()=>{const di=dayInfo(vw.week,vw.day);const rest=tasks.map((t,i)=>done.includes(i)?null:TASKNAME[t[0]]).filter(Boolean);
+    return di.cls==="full"?`<div class="reviewbar ok"><div><b>✓ Week ${vw.week}・${vw.day}日目は完了しています</b><p class="small">全部の課題が終わっています。もう一度やっても大丈夫です。</p></div><button class="btn sm primary" data-act="vtoday">今日（W${S.week}・${S.day}日目）に戻る</button></div>`
+     :di.cls==="miss"?`<div class="reviewbar ng"><div><b>⚠ Week ${vw.week}・${vw.day}日目はまだ未完了です（あと${di.left}つ）</b><p class="small">残っている課題：${rest.map(esc).join("・")}。終わらせるとこの日に ✓ が付きます。</p></div><button class="btn sm primary" data-act="vtoday">今日（W${S.week}・${S.day}日目）に戻る</button></div>`
+     :`<div class="reviewbar"><div><b>Week ${vw.week}・${vw.day}日目（これからの日）を見ています</b><p class="small">先に見ておくことはできますが、記録はこの日に付きます。</p></div><button class="btn sm primary" data-act="vtoday">今日（W${S.week}・${S.day}日目）に戻る</button></div>`})()}
   <div class="spread"><h2>${vw.day}日目　${plan.name}</h2><span class="mono small muted">約${tasks.reduce((a,t)=>a+t[1],0)}分</span></div>
-  <div class="tasks">${tasks.map((t,i)=>taskRow(t,i,done.includes(i),vwW)).join("")}</div>
+  <div class="tasks">${tasks.map((t,i)=>taskRow(t,i,done.includes(i),vwW,!done.includes(i)&&dayInfo(vw.week,vw.day).cls==="miss")).join("")}</div>
   ${!isCur?"":allDone?`<div class="celebrate"><div class="stack"><b>今日のメニュー完了です。おつかれさまでした！</b><p class="small">明日は「${S.day<7?DAYS[S.day+1].name:"次の週の1日目"}」です。</p><div><button class="btn" data-act="nextday">次の日へ進む →</button></div></div>${S.day===7&&IMG_HAVE.has(tm.img)?pic(tm.img,"mascot",""):pic("fx-done","mascot","")}</div>`
    :`<div class="row"><button class="btn sm ghost" data-act="nextday">今日はここまでにして次の日へ</button></div>`}
   <button class="mapbtn" data-act="growth">${pic("aki-chart","","")}<span><b>できることマップ</b><small>何を勉強して、何ができるようになったかを一目で</small></span><span class="min">→</span></button></div>
@@ -666,7 +695,7 @@ function viewToday(){
   ${SAMPLE||!IN_ARTIFACT?"":`<p class="note">AI添削・AI英会話は claude.ai にサインインして開くと使えます。</p>`}
   </div></div>`;
   return html}
-function taskRow(t,i,done,w){
+function taskRow(t,i,done,w,miss){
   const [type,min,arg]=t;let sub="";
   if(type==="vocab")sub=`今週の単語 ${arg[0]+1}〜${arg[1]}`;
   else if(type==="sentences")sub=`今週の文 ${arg[0]+1}〜${arg[1]}`;
@@ -678,7 +707,7 @@ function taskRow(t,i,done,w){
   else if(type==="test")sub="単語10問＋並べ替え5問";
   else if(type==="input")sub=phaseOf(S.week).res.slice(-1)[0][0];
   else if(type==="speak")sub="お題："+speakTopic(w).ja+"（Claude の音声モード・実際の会話・ひとりで）";
-  return `<button class="task ${done?"done":""}" data-task="${i}" data-type="${type}"><span class="ic">${done?"✓":taskIcon(type)}</span><span><span class="num">STEP ${i+1}</span><b>${TASKNAME[type]}</b><small>${esc(sub)}</small></span><span class="min">${min}分</span></button>`}
+  return `<button class="task ${done?"done":""} ${miss?"miss":""}" data-task="${i}" data-type="${type}"><span class="ic">${done?"✓":taskIcon(type)}</span><span><span class="num">STEP ${i+1}${done?`<em class="tstate ok">完了</em>`:miss?`<em class="tstate ng">未完了</em>`:""}</span><b>${TASKNAME[type]}</b><small>${esc(sub)}</small></span><span class="min">${min}分</span></button>`}
 
 /* ============ 画面：ロードマップ ============ */
 function viewMap(){
