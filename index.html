@@ -454,6 +454,12 @@ h2{font-weight:800}
 .hkrow summary::-webkit-details-marker{display:none}
 .hkrow summary .en{grid-column:2}
 .hk-ok{color:var(--green);font-weight:900}
+.checkbtn{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;background:var(--surface);border:2px solid transparent;border-radius:20px;padding:14px 16px;box-shadow:var(--shadow)}
+.checkbtn .ic{width:44px;height:44px;border-radius:50%;background:#2B3158;display:grid;place-items:center;font-size:22px}
+.checkbtn small{display:block;font-size:12.5px;color:var(--muted)}
+.dc-img{width:130px;height:auto;margin:0 auto;display:block}
+.checkbtn.hot{border-color:#6C5CE7;background:linear-gradient(135deg,#F1EEFF,#fff)}
+.opts.en .opt{font-family:var(--f-en,inherit)}
 </style>
 </head>
 <body>
@@ -625,7 +631,9 @@ function logMinutes(m,task){const d=today();const L=S.log[d]||(S.log[d]={m:0,t:[
 const IV=[0,1,3,7,14,30,60];
 function rateCard(key,r){const c=S.srs[key]||{b:0,d:today()};
   if(r===0){c.b=0;c.d=today()}else if(r===1){c.b=Math.max(1,c.b);c.d=addDays(today(),1)}else{c.b=Math.min(6,c.b+1);c.d=addDays(today(),IV[c.b])}
-  S.srs[key]=c}
+  S.srs[key]=c;markStudied(key,r)}
+function markStudied(key,r){const d=today();if(!S.studied)S.studied={};const m=S.studied[d]||(S.studied[d]={});m[key]=Math.min(m[key]==null?2:m[key],r);
+  const ks=Object.keys(S.studied).sort();while(ks.length>14)delete S.studied[ks.shift()]}
 function cardFromKey(k){const hk=k.match(/^h(\d+)$/);if(hk)return hkCard(+hk[1]);const iv=k.match(/^i(\d)-(\d+)$/);if(iv)return introCard(+iv[1],+iv[2]);const n=k.match(/^n([a-z0-9]+)-([svgfd])-(\d+)$/);if(n)return noteCard(n[1],n[2],+n[3]);const m=k.match(/^([vs])(\d+)-(\d+)$/);if(!m)return null;const w=W(+m[2]);if(!w)return null;
   const raw=(m[1]==="v"?w.vocab:w.sentences)[+m[3]];if(!raw)return null;const it=m[1]==="s"?{ja:raw.ja,en:raw.en,note:raw.point}:raw;return{key:k,type:m[1],item:it,week:+m[2]}}
 function dueKeys(){const t=today();return Object.keys(S.srs).filter(k=>S.srs[k].d<=t).sort((a,b)=>S.srs[a].d<S.srs[b].d?-1:1)}
@@ -732,6 +740,7 @@ function viewToday(){
   <div class="tasks">${tasks.map((t,i)=>taskRow(t,i,done.includes(i),vwW,!done.includes(i)&&dayInfo(vw.week,vw.day).cls==="miss")).join("")}</div>
   ${!isCur?"":allDone?`<div class="celebrate"><div class="stack"><b>今日のメニュー完了です。おつかれさまでした！</b><p class="small">明日は「${S.day<7?DAYS[S.day+1].name:"次の週の1日目"}」です。</p><div><button class="btn" data-act="nextday">次の日へ進む →</button></div></div>${S.day===7&&IMG_HAVE.has(tm.img)?pic(tm.img,"mascot",""):pic("fx-done","mascot","")}</div>`
    :`<div class="row"><button class="btn sm ghost" data-act="nextday">今日はここまでにして次の日へ</button></div>`}
+  ${isCur?dayCheckRow(allDone):""}
   <button class="mapbtn" data-act="growth">${pic("aki-chart","","")}<span><b>できることマップ</b><small>何を勉強して、何ができるようになったかを一目で</small></span><span class="min">→</span></button></div>
   <div class="tc stack"><div class="stats">
    <div class="stat"><b>${streak()}</b><span>連続学習日数</span></div>
@@ -1424,6 +1433,60 @@ function openIntro(tab){let cur=tab||0;
     }
     draw()})}
 
+/* ============ 1日のふりかえりテスト（その日に練習したカードだけで5分） ============ */
+function studiedToday(){return (S.studied||{})[today()]||{}}
+function dayCheckRow(allDone){const keys=Object.keys(studiedToday()).filter(k=>cardFromKey(k));const res=(S.dayTest||{})[today()];
+  if(!keys.length&&!res)return"";
+  return `<button class="checkbtn ${allDone&&!res?"hot":""}" data-act="daycheck"><span class="ic">🌙</span><span><b>1日のふりかえりテスト${res?`　<em class="tstate ok">${res.p}点</em>`:""}</b><small>${res?"今日のテストは終わっています。もう一度やってもOK":`今日練習した ${keys.length}枚から出題・約5分。寝る前の1回で、記憶に残りやすくなります`}</small></span><span class="min">→</span></button>`}
+function dcTiles(en){const tk=en.replace(/([.?!,])/g," $1").split(/\s+/).filter(Boolean);return tk.length>=3&&tk.length<=12?shuffle(tk):null}
+function lessonDayCheck(){
+  const st=studiedToday();
+  // 出す順：今日「わからない・あいまい」だったもの → 残りをばらばらに。足りなければ今週の単語で埋める
+  let keys=[...shuffle(Object.keys(st).filter(k=>st[k]<2)),...shuffle(Object.keys(st).filter(k=>st[k]>=2))].filter(k=>cardFromKey(k)).slice(0,8);
+  const w=W(S.week);
+  if(keys.length<5&&w)keys=keys.concat(shuffle(w.vocab.map((_,i)=>"v"+S.week+"-"+i).filter(k=>!keys.includes(k)))).slice(0,6);
+  const vpool=w?w.vocab:[],hpool=HK();
+  const Q=keys.map(k=>{const c=cardFromKey(k);if(!c)return null;const it=c.item;
+    if(c.type==="v"){const pool=(W(c.week)||w||{vocab:vpool}).vocab;const wrong=shuffle(pool.filter(x=>x.ja!==it.ja)).slice(0,3).map(x=>x.ja);
+      return{key:k,kind:"v",q:it.en,a:it.ja,opts:shuffle([it.ja,...wrong]),say:it.en,label:"単語"}}
+    if(/^h\d+$/.test(k)){const h=hkFind(+k.slice(1));const same=hpool.filter(x=>hkSetOf(x)===hkSetOf(h)&&x.id!==h.id);const wrong=shuffle(same).slice(0,3).map(x=>x.ans[0].en);
+      return{key:k,kind:"c",q:"「"+h.ja+"」",sub:h.q?"相手："+h.q.en:"場面："+h.scene,a:h.ans[0].en,opts:shuffle([h.ans[0].en,...wrong]),say:h.ans[0].en,label:"ひとこと英語"}}
+    const tiles=dcTiles(it.en);if(!tiles)return null;
+    return{key:k,kind:"s",q:it.q||it.ja,a:it.en,tiles,say:it.en,label:c.noteLabel||"文"}}).filter(Boolean);
+  let i=0,score=0,picked=[],answered=false;const miss=[];
+  const norm=s=>s.toLowerCase().replace(/[^a-z0-9' ]/g,"").replace(/\s+/g," ").trim();
+  function judge(q,ok){answered=true;if(ok)score++;else{miss.push(q);rateCard(q.key,0)}save()}
+  function draw(body){
+    if(!Q.length){body.innerHTML=`<div class="stack"><p>今日はまだテストに出せるカードがありません。</p><p class="small muted">単語カード・瞬間英作文・ひとこと英語などで練習すると、その分から出題されます。</p>${finishBtn("閉じる")}</div>`;bindFinish(body,closeLesson);return}
+    if(i>=Q.length){const pts=Math.round(score/Q.length*100);if(!S.dayTest)S.dayTest={};const prev=S.dayTest[today()];if(!prev||pts>prev.p)S.dayTest[today()]={p:pts,n:Q.length};logMinutes(5,"daycheck");save();
+      const L=S.log[today()]||{m:0};const kinds={};Object.keys(st).forEach(k=>{const c=cardFromKey(k);if(c){const nm=/^h/.test(k)?"ひとこと":c.type==="v"?"単語":"文";kinds[nm]=(kinds[nm]||0)+1}});
+      body.innerHTML=`<div class="stack">${pic(pts>=100&&IMG_HAVE.has("aki-medal")?"aki-medal":pts>=70?(IMG_HAVE.has("aki-night")?"aki-night":"aki-cheer"):"aki-think","dc-img","")}
+        <div class="eyebrow">今日のふりかえり</div><h2 class="mono" style="font-size:44px">${pts}<span style="font-size:18px">点</span></h2>
+        <p>${pts>=100?"全問正解！今日の分はしっかり頭に入っています。":pts>=70?"よくできました。まちがえた分は明日の復習に入れました。":"まちがえた分を明日の復習に入れました。寝る前にもう一度だけ下の英文を声に出して読むと効果的です。"}</p>
+        <div class="card stack"><b>今日やったこと</b><div class="small">勉強した時間 <b class="mono">${L.m||0}分</b>${L.s?`・英語で話した <b class="mono">${L.s}分</b>`:""}</div>
+         <div class="small">練習したカード：${Object.entries(kinds).map(([k,n])=>`${k} <b class="mono">${n}</b>`).join("・")||"—"}</div></div>
+        ${miss.length?`<div class="card stack"><b>まちがえたもの（明日の復習に入れました）</b>${miss.map(q=>`<div class="exline">${spkBtn(q.say)}<div class="t"><span class="en">${esc(q.kind==="v"?q.q:q.a)}</span><span class="small muted">${esc(q.kind==="v"?q.a:q.q)}</span></div></div>`).join("")}</div>`:""}
+        ${finishBtn()}</div>`;bindFinish(body,closeLesson);return}
+    const q=Q[i];
+    let h=`<div class="stack"><div class="spread"><span class="small muted mono">${i+1} / ${Q.length}</span><span class="chip">${esc(q.label)}</span></div><div class="progress"><span style="width:${i/Q.length*100}%"></span></div>`;
+    if(q.kind==="v"||q.kind==="c"){
+      h+=q.kind==="v"?`<div class="flash" style="min-height:130px"><div class="word">${esc(q.q)}</div>${spkBtn(q.q)}</div><p class="small muted">意味はどれ？</p>`
+        :`<div class="hk-cap big"><b>${esc(q.q)}</b><span>って英語で？</span></div><p class="small muted" style="text-align:center">${esc(q.sub)}</p>`;
+      h+=`<div class="opts ${q.kind==="c"?"en":""}">${q.opts.map((o,k)=>`<button class="opt ${answered?(o===q.a?"ok":picked[0]===k?"ng":""):""}" data-o="${k}">${esc(o)}</button>`).join("")}</div>`}
+    else{h+=`<div class="card"><div class="eyebrow">並べ替え</div><p style="font-size:17px;font-weight:700">${esc(q.q)}</p></div>
+      <div class="answer en">${picked.map((k,j)=>`<button class="tile" data-un="${j}">${esc(q.tiles[k])}</button>`).join("")}</div>
+      <div class="tiles en">${q.tiles.map((t,k)=>`<button class="tile ${picked.includes(k)?"used":""}" data-t="${k}" ${picked.includes(k)?"disabled":""}>${esc(t)}</button>`).join("")}</div>
+      ${answered?`<div class="ai"><b>${norm(picked.map(k=>q.tiles[k]).join(" "))===norm(q.a)?"正解":"正解は"}</b>　<span class="en">${esc(q.a)}</span></div>`:`<div><button class="btn primary" id="judge" ${picked.length<q.tiles.length?"disabled":""}>答え合わせ</button></div>`}`}
+    if(answered)h+=`<div><button class="btn primary" id="next">次へ →</button></div>`;
+    body.innerHTML=h+"</div>";
+    body.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{if(answered)return;picked=[+b.dataset.o];judge(q,q.opts[picked[0]]===q.a);speak(q.say,undefined,q.kind==="c"?hkVoice(hkFind(+q.key.slice(1)),0):undefined);draw(body)});
+    body.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{if(answered)return;picked.push(+b.dataset.t);draw(body)});
+    body.querySelectorAll("[data-un]").forEach(b=>b.onclick=()=>{if(answered)return;picked.splice(+b.dataset.un,1);draw(body)});
+    const jg=body.querySelector("#judge");if(jg)jg.onclick=()=>{judge(q,norm(picked.map(k=>q.tiles[k]).join(" "))===norm(q.a));speak(q.a);draw(body)};
+    const nx=body.querySelector("#next");if(nx)nx.onclick=()=>{i++;picked=[];answered=false;draw(body)};
+  }
+  openLesson("1日のふりかえり","約5分","",draw)}
+
 /* ============ ひとこと英語（「これ英語で？」と、フレーズ集60） ============
    Mai さん（@mai_english_）の教え方を参考に：日本語のひとこと → 考える時間 → 言い方を2〜3通り、ニュアンス付きで。
    教材は data/hitokoto.js（id 1〜60＝これ英語で？、101〜160＝フレーズ集60） */
@@ -1639,6 +1702,8 @@ function mergeRemote(d){if(!d||!d.state)return;const R=merge(d.state),L=S;
   out.scores=uniq([...(older.scores||[]),...(newer.scores||[])],x=>x.date+"|"+x.test+"|"+x.result);
   out.diary=uniq([...(older.diary||[]),...(newer.diary||[])],x=>x.date).sort((a,b)=>a.date<b.date?-1:1);
   const pm=new Map();[...(older.people||[]),...(newer.people||[])].forEach(p=>{if(!p||!p.name)return;const o=pm.get(p.name)||{};pm.set(p.name,{name:p.name,org:p.org||o.org||"",memo:p.memo||o.memo||""})});out.people=[...pm.values()];
+  out.studied=Object.assign({},L.studied||{});Object.entries(R.studied||{}).forEach(([d,m])=>{const a=Object.assign({},out.studied[d]||{});Object.entries(m).forEach(([k,r])=>{a[k]=a[k]==null?r:Math.min(a[k],r)});out.studied[d]=a});
+  out.dayTest=Object.assign({},L.dayTest||{});Object.entries(R.dayTest||{}).forEach(([d,x])=>{const a=out.dayTest[d];if(!a||(x.p||0)>(a.p||0))out.dayTest[d]=x});
   out.deletedNotes=[...new Set([...(L.deletedNotes||[]),...(R.deletedNotes||[])])];
   if(L.doneToday&&R.doneToday&&L.doneToday.date===R.doneToday.date&&L.week===R.week&&L.day===R.day)out.doneToday={date:L.doneToday.date,tasks:[...new Set([...(L.doneToday.tasks||[]),...(R.doneToday.tasks||[])])]};
   out.updatedAt=Math.max(L.updatedAt||0,R.updatedAt||0);S=out;
@@ -1704,6 +1769,7 @@ document.addEventListener("click",e=>{
   else if(act==="quickgo"){const v=$("#quick-raw").value.trim();if(!v){toast("会話を貼り付けてください");return}openNoteEditor("",v);$("#quick-raw").value=""}
   else if(act==="intro"){openIntro(0)}
   else if(act==="hk"){openHitokoto("today")}
+  else if(act==="daycheck"){lessonDayCheck()}
   else if(act==="quicklog"){openQuickLog("")}
   else if(act==="notereview"){lessonCards(dueNoteKeys().slice(0,30).map(cardFromKey).filter(Boolean),"ノートの復習",()=>{logMinutes(10,"note");save();closeLesson()},true)}
   else if(act==="backup"||act==="backupcopy"){const data=JSON.stringify({app:"eigo52",v:1,savedAt:new Date().toISOString(),state:S,notes:NOTES});
