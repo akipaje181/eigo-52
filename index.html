@@ -428,6 +428,32 @@ h2{font-weight:800}
 .tstate.ok{background:var(--green);color:#fff}
 .tstate.ng{background:var(--red);color:#fff}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* ひとこと英語（Mai さん式のテロップ） */
+.hkcard{display:flex;flex-direction:column;gap:8px;width:100%;text-align:left;background:linear-gradient(135deg,#3D7BFF,#6C5CE7);color:#fff;border:none;border-radius:20px;padding:16px 18px;box-shadow:var(--shadow)}
+.hkcard .hk-top{display:flex;justify-content:space-between;align-items:center;gap:8px;opacity:.95}
+.hkcard .hk-eb{font-family:var(--f-head);font-weight:900;font-size:13px;letter-spacing:.04em}
+.hkcard small{opacity:.9;font-size:12.5px}
+.hk-cap{display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(20,26,48,.82);color:#fff;border-radius:12px;padding:12px 14px;text-align:center}
+.hk-cap b{font-family:var(--f-head);font-size:22px;font-weight:900;color:#FFE27A}
+.hk-cap span{font-weight:700;font-size:15px}
+.hk-cap.big{padding:22px 16px}.hk-cap.big b{font-size:30px}
+.hk-cap.think b{color:#fff}
+.hk-bar{display:block;width:80%;height:6px;border-radius:3px;background:rgba(255,255,255,.25);overflow:hidden;margin-top:8px}
+.hk-bar em{display:block;height:100%;width:0;background:#FFC93C}
+.hk-partner{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:16px;padding:10px 12px;box-shadow:var(--shadow)}
+.hk-partner .avatar{width:44px;height:44px}
+.hk-partner .t,.hk-ans .t{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.hk-ans{display:flex;gap:10px;align-items:flex-start;padding:6px 0}
+.hk-ans+.hk-ans{border-top:1px dashed var(--line)}
+.hk-ans .en{font-size:18px}
+.hk-n{font-size:11.5px;font-weight:800;color:var(--accent-ink)}
+.hk-ans mark,.hkrow mark{background:linear-gradient(transparent 55%,#FFE27A 55%);color:inherit;padding:0 1px}
+.hklist{padding:4px 14px}
+.hkrow{border-bottom:1px solid var(--line)}.hkrow:last-child{border-bottom:none}
+.hkrow summary{display:grid;grid-template-columns:20px 1fr;column-gap:8px;padding:10px 0;cursor:pointer;list-style:none}
+.hkrow summary::-webkit-details-marker{display:none}
+.hkrow summary .en{grid-column:2}
+.hk-ok{color:var(--green);font-weight:900}
 </style>
 </head>
 <body>
@@ -454,6 +480,7 @@ h2{font-weight:800}
 <script src="data/phase2.js"></script>
 <script src="data/phase3.js"></script>
 <script src="data/phase4.js"></script>
+<script src="data/hitokoto.js"></script>
 <script>
 "use strict";
 /* ============ 52週の骨組み（データ未読込でもロードマップは表示） ============ */
@@ -599,7 +626,7 @@ const IV=[0,1,3,7,14,30,60];
 function rateCard(key,r){const c=S.srs[key]||{b:0,d:today()};
   if(r===0){c.b=0;c.d=today()}else if(r===1){c.b=Math.max(1,c.b);c.d=addDays(today(),1)}else{c.b=Math.min(6,c.b+1);c.d=addDays(today(),IV[c.b])}
   S.srs[key]=c}
-function cardFromKey(k){const iv=k.match(/^i(\d)-(\d+)$/);if(iv)return introCard(+iv[1],+iv[2]);const n=k.match(/^n([a-z0-9]+)-([svgfd])-(\d+)$/);if(n)return noteCard(n[1],n[2],+n[3]);const m=k.match(/^([vs])(\d+)-(\d+)$/);if(!m)return null;const w=W(+m[2]);if(!w)return null;
+function cardFromKey(k){const hk=k.match(/^h(\d+)$/);if(hk)return hkCard(+hk[1]);const iv=k.match(/^i(\d)-(\d+)$/);if(iv)return introCard(+iv[1],+iv[2]);const n=k.match(/^n([a-z0-9]+)-([svgfd])-(\d+)$/);if(n)return noteCard(n[1],n[2],+n[3]);const m=k.match(/^([vs])(\d+)-(\d+)$/);if(!m)return null;const w=W(+m[2]);if(!w)return null;
   const raw=(m[1]==="v"?w.vocab:w.sentences)[+m[3]];if(!raw)return null;const it=m[1]==="s"?{ja:raw.ja,en:raw.en,note:raw.point}:raw;return{key:k,type:m[1],item:it,week:+m[2]}}
 function dueKeys(){const t=today();return Object.keys(S.srs).filter(k=>S.srs[k].d<=t).sort((a,b)=>S.srs[a].d<S.srs[b].d?-1:1)}
 
@@ -712,6 +739,7 @@ function viewToday(){
    <div class="stat"><b>${mastered("v")}</b><span>覚えた単語</span></div>
    <div class="stat"><b>${(speakingMinutes()/60).toFixed(1)}</b><span>英語で話した（h）</span></div>
   </div>
+  ${hkTodayCard()}
   ${introRow()}
   <p class="note">アプリ以外に、毎日<b>20分の「耳だけ学習」</b>（通勤・施術の合間に今週の会話や VOA／BBC を聞く）をすると、1年で約600時間になります。${S.week>=14?"第2期からは<b>オンライン英会話25分</b>も足しましょう。":""}</p>
   ${SAMPLE||!IN_ARTIFACT?"":`<p class="note">AI添削・AI英会話は claude.ai にサインインして開くと使えます。</p>`}
@@ -1396,6 +1424,85 @@ function openIntro(tab){let cur=tab||0;
     }
     draw()})}
 
+/* ============ ひとこと英語（「これ英語で？」と、フレーズ集60） ============
+   Mai さん（@mai_english_）の教え方を参考に：日本語のひとこと → 考える時間 → 言い方を2〜3通り、ニュアンス付きで。
+   教材は data/hitokoto.js（id 1〜60＝これ英語で？、101〜160＝フレーズ集60） */
+const HK=()=>window.HITOKOTO||[];
+const HK_SETS=[{k:"kore",name:"これ英語で？",desc:"日本語のひとことを、場面に合った英語で。言い方は2〜3通り"},{k:"tossa",name:"とっさの返事60",desc:"相手の言葉に、とっさに返すひとこと（フレーズ集60より）"}];
+const hkSetOf=h=>h.id>100?"tossa":"kore";
+const hkFind=id=>HK().find(h=>h.id===+id);
+const hkLearned=h=>{const s=S.srs["h"+h.id];return s&&s.b>=2};
+function hkVoice(h,i){return hkSetOf(h)==="tossa"?"andrew":"ava"}
+function hkCard(id){const h=hkFind(id);if(!h)return null;
+  return{key:"h"+id,type:"s",item:{q:"「"+h.ja+"」",hint:h.q?"相手："+h.q.en+"（"+h.q.ja+"）":"場面："+h.scene,en:h.ans[0].en,ja:h.ans.slice(1).map(a=>a.en).join(" ／ "),note:h.tip||h.ans[0].nu},week:S.week,noteLabel:"ひとこと英語"}}
+function hkMark(en,hl){const e=esc(en);if(!hl)return e;const h=esc(hl);const i=e.toLowerCase().indexOf(h.toLowerCase());return i<0?e:e.slice(0,i)+"<mark>"+e.slice(i,i+h.length)+"</mark>"+e.slice(i+h.length)}
+// 今日の3つ（これ英語で？2つ＋とっさの返事1つ。まだ練習していないものから順に）
+function hkToday(){const t=today();
+  if(!S.hk||S.hk.date!==t){const fresh=HK().filter(h=>!S.srs["h"+h.id]);
+    const ids=[...fresh.filter(h=>h.id<100).slice(0,2),...fresh.filter(h=>h.id>100).slice(0,1)].map(h=>h.id);
+    S.hk={date:t,ids,done:[]};save()}
+  return S.hk}
+function hkTodayCard(){if(!HK().length)return"";const t=hkToday();const left=t.ids.filter(id=>!t.done.includes(id));const h=hkFind(left[0]||t.ids[0]);
+  const n=HK().filter(hkLearned).length;
+  return `<button class="hkcard" data-act="hk"><span class="hk-top"><span class="hk-eb">${left.length?"今日のひとこと英語":"今日のひとこと 完了 ✓"}</span><span class="small mono">覚えた ${n}/${HK().length}</span></span>
+   ${h?`<span class="hk-cap"><b>「${esc(h.ja)}」</b><span>って英語で？</span></span>`:""}
+   <small>${left.length?`あと${left.length}つ。考えて → 口に出して → 答え合わせ`:"もっとやる・一覧を見る →"}</small></button>`}
+function openHitokoto(mode){
+  let view=mode||"today",q=[],i=0,phase=0,timer=null,cnt=[0,0,0],listSet="kore";
+  const clear=()=>{if(timer){clearInterval(timer);timer=null}};
+  function startQuiz(ids){q=ids.map(hkFind).filter(Boolean);i=0;phase=0;cnt=[0,0,0];view="quiz"}
+  function draw(body){clear();
+    if(view==="today"){const t=hkToday();const left=t.ids.filter(id=>!t.done.includes(id));
+      if(left.length){startQuiz(left)}else view="list"}
+    if(view==="list")return drawList(body);
+    if(i>=q.length){logMinutes(Math.max(2,q.length),"hitokoto");save();
+      body.innerHTML=`<div class="stack" style="text-align:center">${pic(IMG_HAVE.has("aki-check")?"aki-check":"aki-cheer","empty-img","")}<h2>おつかれさまでした</h2><p>${q.length}つのうち、言えた ${cnt[2]}・近かった ${cnt[1]}・出てこなかった ${cnt[0]}</p><p class="small muted">練習したひとことは、時期をおいて「復習」のカードに出てきます。</p>
+       <div class="row" style="justify-content:center"><button class="btn primary" id="hk-more">もう3つやる</button><button class="btn" id="hk-list">一覧を見る</button></div></div>`;
+      body.querySelector("#hk-more").onclick=()=>{const fresh=HK().filter(h=>!S.srs["h"+h.id]);startQuiz(fresh.slice(0,3).map(h=>h.id));draw(body)};
+      body.querySelector("#hk-list").onclick=()=>{view="list";draw(body)};return}
+    const h=q[i],set=hkSetOf(h);
+    const partner=h.q?`<div class="hk-partner">${partnerPic("Raj","avatar")}<div class="t"><span class="en">${esc(h.q.en)}</span><small class="muted">${esc(h.q.ja)}</small></div>${spkBtn(h.q.en,"prabhat")}</div>`:"";
+    const cap=phase===0?`<div class="hk-cap big"><b>「${esc(h.ja)}」</b><span>って英語で？</span></div>`
+      :phase===1?`<div class="hk-cap big think"><b>考えてみて！</b><span>口に出して言ってみよう</span><i class="hk-bar"><em id="hk-fill"></em></i></div>`
+      :`<div class="hk-cap big"><b>「${esc(h.ja)}」</b><span>は英語で…</span></div>`;
+    body.innerHTML=`<div class="stack"><div class="spread"><span class="small muted mono">${i+1} / ${q.length}</span><span class="chip">${esc(HK_SETS.find(s=>s.k===set).name)}・${esc(h.tag)}</span></div>
+     <div class="progress"><span style="width:${i/q.length*100}%"></span></div>
+     ${partner}
+     ${cap}
+     ${h.scene&&!h.q?`<p class="small muted" style="text-align:center">場面：${esc(h.scene)}</p>`:""}
+     ${phase<2?`<button class="btn primary" id="hk-next" style="justify-content:center;width:100%">${phase===0?"考える（5秒）":"答えを見る"}</button>`
+      :`<div class="card stack">${h.ans.map((a,k)=>`<div class="hk-ans">${spkBtn(a.en,hkVoice(h,k))}<div class="t">${h.ans.length>1?`<span class="hk-n">${k+1}つ目</span>`:""}<span class="en">${hkMark(a.en,a.hl)}</span><small class="muted">${esc(a.nu)}</small></div></div>`).join("")}
+        ${h.phrase?`<div class="small">覚えるフレーズ：<b class="en">${esc(h.phrase)}</b>＝${esc(h.ja)}</div>`:""}</div>
+       ${h.tip?`<div class="tip">💡 ${esc(h.tip)}</div>`:""}
+       <div class="rate"><button class="r0" data-r="0">出てこなかった<small>もう一度</small></button><button class="r1" data-r="1">近かった<small>明日</small></button><button class="r2" data-r="2">言えた<small>先へ延ばす</small></button></div>`}
+     <div class="row" style="justify-content:center"><button class="btn sm ghost" id="hk-tolist">一覧を見る</button></div></div>`;
+    if(phase===0&&h.q)speak(h.q.en,undefined,"prabhat");
+    if(phase===2)speak(h.ans[0].en,undefined,hkVoice(h,0));
+    const nx=body.querySelector("#hk-next");if(nx)nx.onclick=()=>{phase++;draw(body)};
+    if(phase===1){const t0=Date.now(),fill=body.querySelector("#hk-fill");timer=setInterval(()=>{const r=(Date.now()-t0)/5000;if(fill)fill.style.width=Math.min(100,r*100)+"%";if(r>=1){clear();if(view==="quiz"&&q[i]===h&&phase===1){phase=2;draw(body)}}},100)}
+    body.querySelector("#hk-tolist").onclick=()=>{view="list";draw(body)};
+    body.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const r=+b.dataset.r;rateCard("h"+h.id,r);cnt[r]++;
+      const t=hkToday();if(t.ids.includes(h.id)&&!t.done.includes(h.id))t.done.push(h.id);
+      if(r===0&&q.indexOf(h)===i&&!q.slice(i+1).includes(h))q.push(h);
+      save();i++;phase=0;draw(body)});
+  }
+  function drawList(body){const set=HK_SETS.find(s=>s.k===listSet);const items=HK().filter(h=>hkSetOf(h)===listSet);
+    const tags=[...new Set(items.map(h=>h.tag))];const n=items.filter(hkLearned).length;
+    body.innerHTML=`<div class="stack"><div class="mascot-side">${pic("aki-point","","")}<div><div class="eyebrow">Hitokoto English</div><h2>ひとこと英語</h2><p class="small muted" style="margin-top:4px">日本語でよく言うひとことを、場面に合った自然な英語で。英語コーチ Mai さんの「これ英語で？ → 考えてみて → 言い方いくつか」の流れを参考にしました。</p></div></div>
+     <div class="tabs">${HK_SETS.map(s=>`<button data-hset="${s.k}" class="${s.k===listSet?"on":""}">${s.name}</button>`).join("")}</div>
+     <p class="small muted">${esc(set.desc)}　<b class="mono">覚えた ${n}/${items.length}</b></p>
+     <div class="row"><button class="btn accent" id="hk-new">まだの5つを練習</button><button class="btn" id="hk-rev">覚えたか確かめる</button></div>
+     ${tags.map(tg=>`<h3>${esc(tg)}</h3><div class="card hklist">${items.filter(h=>h.tag===tg).map(h=>`<details class="hkrow"><summary><span class="hk-ok">${hkLearned(h)?"✓":S.srs["h"+h.id]?"…":""}</span><b>${esc(h.ja)}</b><span class="en small muted">${esc(h.ans[0].en)}</span></summary>
+        <div class="stack" style="padding:8px 0 4px">${h.q?`<div class="small muted">相手：<span class="en">${esc(h.q.en)}</span>（${esc(h.q.ja)}）</div>`:`<div class="small muted">場面：${esc(h.scene)}</div>`}
+        ${h.ans.map((a,k)=>`<div class="hk-ans">${spkBtn(a.en,hkVoice(h,k))}<div class="t"><span class="en">${hkMark(a.en,a.hl)}</span><small class="muted">${esc(a.nu)}</small></div></div>`).join("")}${h.tip?`<div class="tip small">💡 ${esc(h.tip)}</div>`:""}</div></details>`).join("")}</div>`).join("")}
+    </div>`;
+    body.querySelectorAll("[data-hset]").forEach(b=>b.onclick=()=>{stopSpeak();listSet=b.dataset.hset;draw(body)});
+    body.querySelector("#hk-new").onclick=()=>{const ids=items.filter(h=>!S.srs["h"+h.id]).slice(0,5).map(h=>h.id);if(!ids.length){toast("全部練習しました。「覚えたか確かめる」をどうぞ");return}startQuiz(ids);draw(body)};
+    body.querySelector("#hk-rev").onclick=()=>{const ids=items.filter(h=>S.srs["h"+h.id]).sort(()=>Math.random()-.5).slice(0,8).map(h=>h.id);if(!ids.length){toast("まだ練習したひとことがありません");return}startQuiz(ids);draw(body)};
+  }
+  onClose=clear;
+  openLesson("ひとこと英語","",()=>"",draw)}
+
 /* ============ 話す練習（毎日10分）と、話した相手の記録 ============ */
 const MINUTES=[5,10,15,20,30,45,60,90];
 const TALK_TOPICS=[
@@ -1596,6 +1703,7 @@ document.addEventListener("click",e=>{
   else if(act==="quickpaste"){pasteInto($("#quick-raw"))}
   else if(act==="quickgo"){const v=$("#quick-raw").value.trim();if(!v){toast("会話を貼り付けてください");return}openNoteEditor("",v);$("#quick-raw").value=""}
   else if(act==="intro"){openIntro(0)}
+  else if(act==="hk"){openHitokoto("today")}
   else if(act==="quicklog"){openQuickLog("")}
   else if(act==="notereview"){lessonCards(dueNoteKeys().slice(0,30).map(cardFromKey).filter(Boolean),"ノートの復習",()=>{logMinutes(10,"note");save();closeLesson()},true)}
   else if(act==="backup"||act==="backupcopy"){const data=JSON.stringify({app:"eigo52",v:1,savedAt:new Date().toISOString(),state:S,notes:NOTES});
