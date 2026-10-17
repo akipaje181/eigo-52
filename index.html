@@ -361,6 +361,9 @@ h2{font-weight:800}
 .streak{display:inline-flex;align-items:center;gap:4px;font-weight:800;color:var(--accent-ink)}
 .streak img{width:22px;height:22px}
 .mascot-side h2,.mascot-side h3{flex:1;min-width:0}
+.scene{width:100%;display:block;aspect-ratio:3/1;object-fit:cover;border-radius:16px}
+.chip img{width:16px;height:16px;object-fit:contain}
+.avatar.big{width:64px;height:64px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -514,13 +517,22 @@ function cardFromKey(k){const iv=k.match(/^i(\d)-(\d+)$/);if(iv)return introCard
 function dueKeys(){const t=today();return Object.keys(S.srs).filter(k=>S.srs[k].d<=t).sort((a,b)=>S.srs[a].d<S.srs[b].d?-1:1)}
 
 /* ============ 画像（届いたものから順に入れる。ないものは絵文字・SVG のまま） ============ */
-const IMG_HAVE=new Set(["aki-base","aki-wave","aki-cheer","aki-think","aki-talk","aki-study","aki-write","aki-listen","ic-grammar","ic-vocab","ic-sentences","ic-shadow","ic-review","ic-writing","ic-test","ic-roleplay","ic-input","ic-speak","hero-sky","tab-today","tab-notes","tab-map","tab-record","tab-guide","stamp-1","stamp-2","stamp-3","stamp-4","fx-done","empty-notes","aki-card","aki-point","aki-chart","aki-handshake","partner-raj","partner-priya","map-route","sync-devices","ic-streak"]);
+const IMG_HAVE=new Set(["aki-base","aki-wave","aki-cheer","aki-think","aki-talk","aki-study","aki-write","aki-listen","ic-grammar","ic-vocab","ic-sentences","ic-shadow","ic-review","ic-writing","ic-test","ic-roleplay","ic-input","ic-speak","hero-sky","tab-today","tab-notes","tab-map","tab-record","tab-guide","stamp-1","stamp-2","stamp-3","stamp-4","fx-done","empty-notes","aki-card","aki-point","aki-chart","aki-handshake","partner-raj","partner-priya","map-route","sync-devices","ic-streak","aki-goal","aki-graduate","aki-morning","aki-night","aki-rest","aki-medal","aki-cards","aki-check","aki-online","aki-travel","partner-sharma","ch-chat","ch-phone","ch-video","ch-meet","ch-mail","scene-1","scene-2","scene-3","scene-4"]);
 const imgURL=n=>"img/"+n+".webp";
 // あき先生のポーズがまだ無いときは、基本の立ち姿（aki-base）で代用する
-const imgName=n=>IMG_HAVE.has(n)?n:(/^aki-/.test(n)&&IMG_HAVE.has("aki-base")?"aki-base":null);
+const imgName=n=>IMG_HAVE.has(n)?n:(/^aki-/.test(n)?(IMG_HAVE.has("aki-wave")?"aki-wave":IMG_HAVE.has("aki-base")?"aki-base":null):null);
+/* 場面に合わせたあき先生とあいさつ */
+function todayMascot(allDone){const h=new Date().getHours();const studiedBefore=Object.keys(S.log).some(d=>d<today()&&S.log[d].m>0);
+  if(allDone){if(S.day===7)return{img:S.week%13===0?"aki-graduate":"aki-goal",msg:S.week%13===0?"第"+phaseOf(S.week).n+"期クリア！":"今週クリア！"};return{img:"aki-cheer",msg:"今日もよくがんばりました"}}
+  if(studiedBefore&&streak()===0)return{img:"aki-rest",msg:"おかえりなさい。今日から再開しましょう"};
+  if(h>=5&&h<11)return{img:"aki-morning",msg:"おはようございます"};
+  if(h>=19||h<4)return{img:"aki-night",msg:"こんばんは。今日もおつかれさまです"};
+  return{img:"aki-wave",msg:"こんにちは"}}
+const CH_ICON={"WhatsApp":"ch-chat","電話":"ch-phone","Zoom・Meet":"ch-video","対面":"ch-meet","メール":"ch-mail"};
+function chChip(ch){if(!ch)return"";const n=CH_ICON[ch];return `<span class="chip">${n&&IMG_HAVE.has(n)?pic(n,"",""):""}${esc(ch)}</span>`}
 function pic(n,cls,alt){const m=imgName(n);return m?`<img class="${cls||""}" src="${imgURL(m)}" alt="${esc(alt||"")}" decoding="async">`:""}
 const TASK_EMOJI={grammar:"📘",vocab:"🔤",sentences:"⚡",shadow:"🎧",review:"🔁",writing:"✏️",test:"📝",roleplay:"💬",input:"👂",speak:"🗣️"};
-function partnerPic(name,cls){return pic(/Priya|Mehta|Ms\.|Mrs\.|Anita|Neha|Pooja|Sangeeta|Isha|Kavya|Divya/i.test(name||"")?"partner-priya":"partner-raj",cls||"avatar","")}
+function partnerPic(name,cls){const nm=name||"";const k=/Priya|Mehta|Ms\.|Mrs\.|Madam|Anita|Neha|Pooja|Sangeeta|Isha|Kavya|Divya/i.test(nm)?"partner-priya":(/Sharma|Mr\.|Sir|Gupta|Verma|Singh|Kumar/i.test(nm)&&IMG_HAVE.has("partner-sharma"))?"partner-sharma":"partner-raj";return pic(k,cls||"avatar","")}
 function taskIcon(type){return IMG_HAVE.has("ic-"+type)?pic("ic-"+type,"",""):(TASK_EMOJI[type]||"•")}
 function navImages(){document.querySelectorAll(".nav [data-tab]").forEach(b=>{const n="tab-"+b.dataset.tab;if(IMG_HAVE.has(n)&&!b.querySelector("img")){const s=b.querySelector("svg");if(s)s.outerHTML=pic(n,"","")}})}
 navImages();
@@ -565,13 +577,14 @@ function viewToday(){
   const done=S.doneToday.tasks;
   const allDone=tasks.every((t,i)=>done.includes(i));
   const title=w?w.title:OUTLINE[S.week-1];
-  let html=`<div class="top"><div class="hello">${pic(allDone?"aki-cheer":"aki-wave","mascot","あき先生")}<div><div class="eyebrow">${today().replace(/-/g,".")}</div><h1>今日のメニュー</h1></div></div>
+  const tm=todayMascot(allDone);
+  let html=`<div class="top"><div class="hello">${pic(tm.img,"mascot","あき先生")}<div><div class="eyebrow">${today().replace(/-/g,".")} ・ ${esc(tm.msg)}</div><h1>今日のメニュー</h1></div></div>
    <div class="daybadge"><span class="streak">${pic("ic-streak","","")}連続 ${streak()}日</span>${!IN_ARTIFACT&&syncCfg()?`<br><span id="syncchip">${syncChipText()}</span>`:""}</div></div>
   <div class="tgrid"><div class="ta stack">${boardingPass(w,behind)}
   <div class="phases">${PHASES.map(p=>`<div class="${phaseOf(S.week).n===p.n?"on":""}">${IMG_HAVE.has("stamp-"+p.n)?pic("stamp-"+p.n,"stamp",""):""}<b>PHASE ${p.n} · ${p.cefr}</b>${p.name}</div>`).join("")}</div></div>
   <div class="tb stack"><div class="spread"><h2>${S.day}日目　${plan.name}</h2><span class="mono small muted">約${tasks.reduce((a,t)=>a+t[1],0)}分</span></div>
   <div class="tasks">${tasks.map((t,i)=>taskRow(t,i,done.includes(i),w)).join("")}</div>
-  ${allDone?`<div class="celebrate"><div class="stack"><b>今日のメニュー完了です。おつかれさまでした！</b><p class="small">明日は「${S.day<7?DAYS[S.day+1].name:"次の週の1日目"}」です。</p><div><button class="btn" data-act="nextday">次の日へ進む →</button></div></div>${pic("fx-done","mascot","")}</div>`
+  ${allDone?`<div class="celebrate"><div class="stack"><b>今日のメニュー完了です。おつかれさまでした！</b><p class="small">明日は「${S.day<7?DAYS[S.day+1].name:"次の週の1日目"}」です。</p><div><button class="btn" data-act="nextday">次の日へ進む →</button></div></div>${S.day===7&&IMG_HAVE.has(tm.img)?pic(tm.img,"mascot",""):pic("fx-done","mascot","")}</div>`
    :`<div class="row"><button class="btn sm ghost" data-act="nextday">今日はここまでにして次の日へ</button></div>`}</div>
   <div class="tc stack"><div class="stats">
    <div class="stat"><b>${streak()}</b><span>連続学習日数</span></div>
@@ -604,6 +617,7 @@ function viewMap(){
   <div class="stack">${pic("map-route","maproute","日本からインドへの地図")}
   <p class="muted small">週をタップすると、その週の教材を自由に練習できます。どの週からでも始め直せます。</p>
   ${PHASES.map(p=>`<div class="card phase">
+    ${pic("scene-"+p.n,"scene","")}
     <div class="phead"><div class="pnum">${IMG_HAVE.has("stamp-"+p.n)?pic("stamp-"+p.n,"stamp","第"+p.n+"期"):p.n}</div><div class="stack" style="gap:6px"><div><div class="eyebrow">第${p.n}期 ・ ${p.months}</div><h2>${p.name}</h2></div>
      <p class="small">${p.aim}</p><div class="targets"><span class="chip a">CEFR ${p.cefr}</span><span class="chip">${p.eiken}</span><span class="chip">${p.toeic}</span></div></div></div>
     <div>${Array.from({length:p.weeks[1]-p.weeks[0]+1},(_,k)=>p.weeks[0]+k).map(n=>{const w=W(n);const sc=S.tests[n];
@@ -614,7 +628,7 @@ function openWeek(n){
   const w=W(n);
   openLesson(`Week ${n}`,w?w.cefr:"",()=>{
     if(!w)return `<p class="note">この週の教材データがまだありません。</p>`;
-    return `<div class="stack"><div><div class="eyebrow">${esc(w.scene)}</div><h2>${esc(w.title)}</h2></div><p class="goal">${esc(w.goal)}</p>
+    return `<div class="stack">${pic("scene-"+phaseOf(n).n,"scene","")}<div><div class="eyebrow">${esc(w.scene)}</div><h2>${esc(w.title)}</h2></div><p class="goal">${esc(w.goal)}</p>
     <div class="tasks">${[["grammar",10],["vocab",10,[0,20]],["sentences",15,[0,10]],["shadow",15,"listen"],["writing",15],["test",15],["roleplay",15]].map((t,i)=>`<button class="task" data-free="${i}"><span class="ic">${i+1}</span><span><b>${TASKNAME[t[0]]}</b></span><span class="min">${t[1]}分</span></button>`).join("")}</div>
     ${n!==S.week?`<div class="card stack"><b>この週から始める</b><p class="small muted">今日のメニューが Week ${n} の1日目になります。これまでの記録は残ります。</p><div class="row"><button class="btn accent" data-act="setweek" data-n="${n}" id="setweekbtn">Week ${n} から始める</button></div></div>`:""}</div>`},
    body=>{
@@ -765,7 +779,7 @@ function lessonCards(cards,title,done,isReview){
   let q=cards.slice(),i=0,flipped=false,total=cards.length,cnt=[0,0,0];const retried=new Set();
   const dir=()=>S.settings.dir;
   function draw(body){
-    if(i>=q.length){body.innerHTML=`<div class="stack"><h2>おつかれさまでした</h2><p>${total}枚のうち、わかった ${cnt[2]}・あいまい ${cnt[1]}・わからない ${cnt[0]}</p><p class="small muted">「わからない」のカードは明日以降の復習に出てきます。</p>${finishBtn()}</div>`;bindFinish(body,done);return}
+    if(i>=q.length){body.innerHTML=`<div class="stack">${pic(cards.some(c=>c.type==="v")&&IMG_HAVE.has("aki-cards")?"aki-cards":IMG_HAVE.has("aki-check")?"aki-check":"aki-cheer","empty-img","")}<h2>おつかれさまでした</h2><p>${total}枚のうち、わかった ${cnt[2]}・あいまい ${cnt[1]}・わからない ${cnt[0]}</p><p class="small muted">「わからない」のカードは明日以降の復習に出てきます。</p>${finishBtn()}</div>`;bindFinish(body,done);return}
     const c=q[i],it=c.item,isV=c.type==="v";
     const front=isV?(dir()==="en"?`<div class="word">${esc(it.en)}</div>`:`<div class="jp">${esc(it.ja)}</div>`):`<div class="jp">${esc(it.q||it.ja)}</div><p class="small muted">${esc(it.hint||"英語で言ってみましょう")}</p>`;
     const back=isV?`<div class="word">${esc(it.en)}</div><div class="jp">${esc(it.ja)}</div><div class="ex"><div class="row" style="justify-content:center">${spkBtn(it.ex)}<span class="en">${esc(it.ex)}</span></div><div>${esc(it.exJa)}</div></div>`
@@ -797,7 +811,7 @@ function lessonSentences(w,arg,done){
   const items=w.sentences.slice(arg[0],arg[1]).map((it,k)=>({key:`s${w.week}-${arg[0]+k}`,type:"s",item:it,week:w.week}));
   let i=0,show=false,heard=null;
   function draw(body){
-    if(i>=items.length){body.innerHTML=`<div class="stack"><h2>全部できました</h2><p class="small muted">「もう一度」の文は、復習カードに出てきます。言えなかった文は、ノートに書いて3回音読すると効果的です。</p>${finishBtn()}</div>`;bindFinish(body,done);return}
+    if(i>=items.length){body.innerHTML=`<div class="stack">${pic(IMG_HAVE.has("aki-check")?"aki-check":"aki-cheer","empty-img","")}<h2>全部できました</h2><p class="small muted">「もう一度」の文は、復習カードに出てきます。言えなかった文は、ノートに書いて3回音読すると効果的です。</p>${finishBtn()}</div>`;bindFinish(body,done);return}
     const c=items[i];
     body.innerHTML=`<div class="stack"><div class="spread"><span class="small muted mono">${i+1} / ${items.length}</span><span class="small muted">日本語を見て、3秒以内に英語を口に出す</span></div>
      <div class="progress"><span style="width:${i/items.length*100}%"></span></div>
@@ -917,7 +931,7 @@ function lessonTest(w,done){
   const norm=s=>s.toLowerCase().replace(/[^a-z0-9' ]/g,"").replace(/\s+/g," ").trim();
   function draw(body){
     if(i>=Q.length){const pts=Math.round(score/Q.length*100);S.tests[w.week]=Math.max(S.tests[w.week]||0,pts);save();
-      body.innerHTML=`<div class="stack">${pic(pts>=80?"aki-cheer":"aki-think","empty-img","")}<div class="eyebrow">Week ${w.week} 週テスト</div><h2 class="mono" style="font-size:44px">${pts}<span style="font-size:18px">点</span></h2><p>${pts>=80?"合格です。この調子で次の週へ。":"80点未満の週は、復習カードと瞬間英作文をもう一度回してから進むのがおすすめです。"}</p>${finishBtn()}</div>`;bindFinish(body,done);return}
+      body.innerHTML=`<div class="stack">${pic(pts>=100&&IMG_HAVE.has("aki-medal")?"aki-medal":pts>=80?"aki-cheer":"aki-think","empty-img","")}<div class="eyebrow">Week ${w.week} 週テスト</div><h2 class="mono" style="font-size:44px">${pts}<span style="font-size:18px">点</span></h2><p>${pts>=80?"合格です。この調子で次の週へ。":"80点未満の週は、復習カードと瞬間英作文をもう一度回してから進むのがおすすめです。"}</p>${finishBtn()}</div>`;bindFinish(body,done);return}
     const q=Q[i];
     let h=`<div class="stack"><div class="spread"><span class="small muted mono">${i+1} / ${Q.length}</span><span class="small muted mono">${score}問正解</span></div><div class="progress"><span style="width:${i/Q.length*100}%"></span></div>`;
     if(q.kind==="v"){h+=`<div class="flash" style="min-height:140px"><div class="word">${esc(q.q)}</div>${spkBtn(q.q)}</div><div class="opts">${q.opts.map((o,k)=>`<button class="opt ${answered?(o===q.a?"ok":picked[0]===k?"ng":""):""}" data-o="${k}">${esc(o)}</button>`).join("")}</div>`}
@@ -1022,7 +1036,7 @@ function viewNotes(){
    <div class="stat"><b>${noteKeysAll().filter(k=>S.srs[k]&&S.srs[k].b>=3).length}</b><span>覚えたカード</span></div>
    <div class="stat"><b>${due}</b><span>今日の復習</span></div>
   </div>
-  ${NOTES.length?`<div class="cardgrid">`+NOTES.map(n=>`<button class="notecard" data-note="${esc(n.id)}"><div class="spread"><span class="small mono muted">${esc(n.date)}</span><span class="row" style="gap:6px"><span class="chip">${esc(n.channel||"")}</span>${n.minutes?`<span class="chip">${n.minutes}分</span>`:""}${noteCount(n)?`<span class="chip g">${noteCount(n)}枚</span>`:""}</span></div>
+  ${NOTES.length?`<div class="cardgrid">`+NOTES.map(n=>`<button class="notecard" data-note="${esc(n.id)}"><div class="spread"><span class="small mono muted">${esc(n.date)}</span><span class="row" style="gap:6px">${chChip(n.channel)}${n.minutes?`<span class="chip">${n.minutes}分</span>`:""}${noteCount(n)?`<span class="chip g">${noteCount(n)}枚</span>`:""}</span></div>
      <h3 style="margin:4px 0 2px">${esc(n.partner?n.partner+"さんと：":"")}${esc(n.title||"会話")}</h3><p>${esc(n.summary||"")}</p></button>`).join("")+`</div>`
    :`<div class="card stack">${pic("empty-notes","empty-img","")}<h3>まだ記録はありません</h3><p class="small muted">たとえば「Raj さんと WhatsApp で、来月のオンライン会議の日程と、Web制作の見積もりについて話した。dispatch の意味がわからなかった」のようなメモでも、ちゃんと教材になります。</p></div>`}
   <p class="note">ノートのカードは、毎日の「復習カード」にも自動で出てきます。今週の教材と、実際の会話の両方から復習できます。</p>
@@ -1127,7 +1141,7 @@ function saveNewNote(n,opt){opt=opt||{};
 /* --- ノートを開く・練習する --- */
 function openNote(id){const n=noteById(id);if(!n)return;
   openLesson(n.partner?n.partner+"さんとの会話":"会話ノート",n.date,()=>`<div class="stack">
-   <div><div class="row" style="gap:6px">${n.partner?`<button class="chip a" data-goperson style="border:none;cursor:pointer">${esc(n.partner)} さんのページ →</button>`:""}<span class="chip">${esc(n.channel||"")}</span>${n.minutes?`<span class="chip">${n.minutes}分</span>`:""}${(n.topics||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div><h2 style="margin-top:6px">${esc(n.title)}</h2><p class="muted" style="margin-top:4px">${esc(n.summary)}</p></div>
+   <div><div class="row" style="gap:6px">${n.partner?`<button class="chip a" data-goperson style="border:none;cursor:pointer">${esc(n.partner)} さんのページ →</button>`:""}${chChip(n.channel)}${n.minutes?`<span class="chip">${n.minutes}分</span>`:""}${(n.topics||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div><h2 style="margin-top:6px">${esc(n.title)}</h2><p class="muted" style="margin-top:4px">${esc(n.summary)}</p></div>
    <div class="row">${(n.dialogue||[]).length?`<button class="btn accent" id="np-shadow">この会話でシャドーイング</button>`:""}<button class="btn ${(n.dialogue||[]).length?"":"accent"}" data-np="dsgf">文カードで練習</button>${(n.vocab||[]).length?`<button class="btn" data-np="v">単語カード</button>`:""}<button class="btn" id="np-all">全部聞く</button>${SAMPLE?`<button class="btn" id="np-rp">AIと続きを話す</button>`:""}</div>
    ${(n.dialogue||[]).length?`<div class="card"><div class="spread"><h3>練習用の会話（自然な英語に直した版）</h3><span class="small muted">${n.dialogue.length}行</span></div>${n.dialogue.map(l=>`<div class="dl ${l.s==="A"?"mine":""}"><span class="who">${esc(l.name)}</span><div class="t"><span class="en">${esc(l.en)}</span><span class="ja">${esc(l.ja)}</span></div>${spkBtn(l.en)}</div>`).join("")}</div>`:""}
    ${(n.sentences||[]).length?`<div class="card"><h3>使える文</h3>${n.sentences.map(x=>`<div class="exline">${spkBtn(x.en)}<div class="t"><span class="en">${esc(x.en)}</span><span class="small">${esc(x.ja)}</span>${x.note?`<span class="small muted" style="display:block">${esc(x.note)}</span>`:""}</div></div>`).join("")}</div>`:""}
@@ -1256,7 +1270,7 @@ function lessonSpeak(w,done){
    <div class="card stack"><div class="eyebrow">今日のお題</div><h3>${esc(topic.ja)}</h3><p class="en" style="font-size:17px">${esc(topic.en)}</p>
     ${topic.intro!=null?`<div><button class="btn sm" id="sp-intro">自己紹介の原稿を開く</button></div>`:""}</div>
    <h3>やり方を1つ選ぶ</h3>
-   <div class="card stack"><b>① Claude アプリの音声モードで話す（おすすめ）</b>
+   <div class="card stack"><div class="mascot-side">${IMG_HAVE.has("aki-online")?pic("aki-online","",""):""}<b>① Claude アプリの音声モードで話す（おすすめ）</b></div>
     <p class="small muted">Claude がインドの方の役をして、お題について質問してくれます。最後に「終わり」と言うと、日本語でフィードバックがもらえます。</p>
     ${partners.length?`<label class="small" for="sp-partner">相手の役（記録した人から選べます）</label><select id="sp-partner"><option value="">インドの取引先（おまかせ）</option>${partners.map(n=>`<option>${esc(n)}</option>`).join("")}</select>`:""}
     ${SAMPLE?`<div><button class="btn accent" id="sp-inapp">このアプリの中でAIと話す（文字）</button></div>`:""}
@@ -1310,6 +1324,7 @@ function openQuickLog(name,after){
 function openPerson(name){const p=ensurePerson(name);save();
   const ns=NOTES.filter(n=>n.partner===name);const st=personStats(name);
   openLesson(name+" さん","",`<div class="stack">
+   <div class="mascot-side">${partnerPic(name,"avatar big")}${IMG_HAVE.has("aki-travel")?pic("aki-travel","",""):""}<div><div class="eyebrow">Partner</div><h2>${esc(name)} さん</h2>${p.org?`<p class="small muted">${esc(p.org)}</p>`:""}</div></div>
    <div class="stats"><div class="stat"><b>${st.count}</b><span>話した回数</span></div><div class="stat"><b>${st.minutes}</b><span>合計（分）</span></div><div class="stat"><b class="small">${esc(st.last||"—")}</b><span>最後に話した日</span></div><div class="stat"><b>${ns.reduce((a,n)=>a+noteCount(n),0)}</b><span>カード</span></div></div>
    <div class="card stack"><h3>この人のこと</h3>
     <label class="small" for="pp-org">会社・立場</label><input type="text" id="pp-org" value="${esc(p.org||"")}" placeholder="例：Bengaluru の病院グループ・経営企画">
@@ -1318,7 +1333,7 @@ function openPerson(name){const p=ensurePerson(name);save();
    <div class="row"><button class="btn accent" id="pp-log">この人と話した記録をつける</button><button class="btn" id="pp-note">くわしく記録（AIで整理）</button><button class="btn" id="pp-prep">次に話すときの準備</button></div>
    <div id="pp-out"></div>
    <h3>会話の記録</h3>
-   ${ns.length?`<div class="cardgrid">${ns.map(n=>`<button class="notecard" data-pnote="${esc(n.id)}"><div class="spread"><span class="small mono muted">${esc(n.date)}</span><span class="row" style="gap:6px"><span class="chip">${esc(n.channel||"")}</span>${n.minutes?`<span class="chip">${n.minutes}分</span>`:""}</span></div><h3 style="margin:4px 0 2px">${esc(n.title||"会話")}</h3><p>${esc(n.summary||"")}</p></button>`).join("")}</div>`:`<p class="small muted">まだ記録はありません。</p>`}
+   ${ns.length?`<div class="cardgrid">${ns.map(n=>`<button class="notecard" data-pnote="${esc(n.id)}"><div class="spread"><span class="small mono muted">${esc(n.date)}</span><span class="row" style="gap:6px">${chChip(n.channel)}${n.minutes?`<span class="chip">${n.minutes}分</span>`:""}</span></div><h3 style="margin:4px 0 2px">${esc(n.title||"会話")}</h3><p>${esc(n.summary||"")}</p></button>`).join("")}</div>`:`<p class="small muted">まだ記録はありません。</p>`}
   </div>`,
   body=>{body.querySelector("#pp-save").onclick=()=>{p.org=body.querySelector("#pp-org").value.trim();p.memo=body.querySelector("#pp-memo").value.trim();save();toast("保存しました")};
     body.querySelector("#pp-log").onclick=()=>openQuickLog(name);
