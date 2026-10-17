@@ -364,6 +364,52 @@ h2{font-weight:800}
 .scene{width:100%;display:block;aspect-ratio:3/1;object-fit:cover;border-radius:16px}
 .chip img{width:16px;height:16px;object-fit:contain}
 .avatar.big{width:64px;height:64px}
+.weekstrip{background:var(--surface);border-radius:20px;box-shadow:var(--shadow);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.weekstrip .btn[disabled]{visibility:hidden}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dchip{border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:6px 0 4px;display:flex;flex-direction:column;align-items:center;gap:0;font-size:11px;font-weight:700;color:var(--muted);line-height:1.2}
+.dchip i{font-style:normal;font-size:13px;height:16px}
+.dchip.full{background:var(--green-soft);border-color:transparent;color:var(--green)}
+.dchip.part{background:var(--yellow-soft);border-color:transparent;color:#9A6B00}
+.dchip.cur{border-color:var(--indigo)}
+.dchip.sel{box-shadow:0 0 0 3px var(--accent);border-color:var(--accent)}
+.reviewbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--yellow-soft);border-radius:16px;padding:10px 14px;color:#6E4E00}
+.mapbtn{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;background:var(--surface);border:none;border-radius:20px;box-shadow:var(--shadow);padding:10px 14px}
+.mapbtn img{width:56px;height:56px;object-fit:contain}
+.mapbtn small{display:block;color:var(--muted);font-size:12.5px}
+.canlist{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px}
+.canlist li{display:grid;grid-template-columns:24px 1fr;gap:8px;font-size:14px;align-items:start}
+.canlist .ok{width:22px;height:22px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:800}
+.gphase{border-top:1px solid var(--line);padding-top:8px}
+.gphase summary{display:flex;justify-content:space-between;cursor:pointer;padding:6px 2px;font-size:15px}
+.glist{display:grid;gap:6px;margin-top:6px}
+.grow{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:start;text-align:left;width:100%;background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:10px 12px}
+.grow.can{border-color:var(--green);background:var(--green-soft)}
+.grow.now{border-color:var(--indigo)}
+.grow.todo{opacity:.6}
+.gw{font-family:var(--f-mono);font-weight:800;color:var(--indigo-2);display:flex;flex-direction:column;gap:4px;font-size:13px}
+.gst{font-style:normal;font-size:10.5px;border-radius:999px;padding:1px 6px;text-align:center;background:var(--tint);color:var(--muted)}
+.grow.can .gst{background:var(--green);color:#fff}.grow.learning .gst{background:var(--yellow-soft);color:#9A6B00}.grow.now .gst{background:var(--indigo);color:#fff}
+.gmain{min-width:0;display:flex;flex-direction:column;gap:2px}
+.gmain small{color:var(--muted);font-size:12px;line-height:1.45}
+.gbars{display:grid;gap:3px;margin-top:4px}
+.gb{display:grid;grid-template-columns:28px 1fr 40px;gap:6px;align-items:center;font-size:11px}
+.gb em{font-style:normal;color:var(--muted)}
+.bar{height:6px;border-radius:6px;background:var(--tint);overflow:hidden;display:block}
+.bar>span{display:block;height:100%;background:var(--yellow)}
+.bar.s>span{background:var(--accent)}.bar.d>span{background:var(--green)}
+.gtest{font-weight:800;color:var(--indigo-2);font-size:14px}
+.lv{font-style:normal;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.lv.ok{background:var(--green-soft);color:var(--green)}.lv.mid{background:var(--yellow-soft);color:#9A6B00}.lv.none{background:var(--tint);color:var(--muted)}
+.formula{white-space:pre-wrap;margin:0;font-family:var(--f-body);font-size:15.5px;font-weight:700;color:var(--indigo-2);background:var(--sky-soft);border-radius:14px;padding:12px 14px;line-height:1.7}
+.exnote{display:block;font-size:13px;color:#6E4E00;background:var(--yellow-soft);border-radius:10px;padding:4px 10px;margin-top:4px}
+.mistake{display:grid;gap:4px;padding:10px 0;border-top:1px solid var(--line)}
+.mistake:first-of-type{border-top:none}
+.mistake .ng,.mistake .okk{display:flex;gap:8px;align-items:center}
+.mistake i{font-style:normal;font-weight:800;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;flex:none}
+.mistake .ng i{background:var(--red-soft);color:var(--red)}.mistake .ng .en{text-decoration:line-through;color:var(--muted)}
+.mistake .okk i{background:var(--green-soft);color:var(--green)}.mistake .okk .en{font-weight:700;color:var(--green)}
+.cardtip{text-align:left;font-size:14px;background:var(--yellow-soft);color:#5E4300;border-radius:14px;padding:8px 12px;max-width:520px;line-height:1.6}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -437,7 +483,9 @@ let S=fresh();
 let DB=null, UID=null, SAMPLE=null, saveTimer=null;
 function lsGet(){try{const t=localStorage.getItem(LSKEY);return t?JSON.parse(t):null}catch(e){return null}}
 function lsSet(o){try{localStorage.setItem(LSKEY,JSON.stringify(o))}catch(e){}}
-function merge(o){const f=fresh();return Object.assign(f,o,{settings:Object.assign(f.settings,o.settings||{}),doneToday:o.doneToday||f.doneToday})}
+function merge(o){const f=fresh();const m=Object.assign(f,o,{settings:Object.assign(f.settings,o.settings||{}),doneToday:o.doneToday||f.doneToday});
+  if(!m.dayDone||typeof m.dayDone!=="object"){m.dayDone={};if(m.doneToday&&m.doneToday.tasks&&m.doneToday.tasks.length)m.dayDone[m.week+"-"+m.day]=m.doneToday.tasks.slice()}
+  return m}
 function save(){S.updatedAt=Date.now();lsSet(S);clearTimeout(saveTimer);saveTimer=setTimeout(pushDB,1200);if(typeof scheduleSync==="function")scheduleSync()}
 async function pushDB(){if(!DB||!UID)return;try{await DB.doc("data/users/"+UID+"/progress").set(JSON.parse(JSON.stringify(S)))}catch(e){if(e&&e.code==="quota_exceeded")toast("保存容量がいっぱいです")}}
 async function initStore(){
@@ -513,7 +561,7 @@ function rateCard(key,r){const c=S.srs[key]||{b:0,d:today()};
   if(r===0){c.b=0;c.d=today()}else if(r===1){c.b=Math.max(1,c.b);c.d=addDays(today(),1)}else{c.b=Math.min(6,c.b+1);c.d=addDays(today(),IV[c.b])}
   S.srs[key]=c}
 function cardFromKey(k){const iv=k.match(/^i(\d)-(\d+)$/);if(iv)return introCard(+iv[1],+iv[2]);const n=k.match(/^n([a-z0-9]+)-([svgfd])-(\d+)$/);if(n)return noteCard(n[1],n[2],+n[3]);const m=k.match(/^([vs])(\d+)-(\d+)$/);if(!m)return null;const w=W(+m[2]);if(!w)return null;
-  const it=(m[1]==="v"?w.vocab:w.sentences)[+m[3]];return it?{key:k,type:m[1],item:it,week:+m[2]}:null}
+  const raw=(m[1]==="v"?w.vocab:w.sentences)[+m[3]];if(!raw)return null;const it=m[1]==="s"?{ja:raw.ja,en:raw.en,note:raw.point}:raw;return{key:k,type:m[1],item:it,week:+m[2]}}
 function dueKeys(){const t=today();return Object.keys(S.srs).filter(k=>S.srs[k].d<=t).sort((a,b)=>S.srs[a].d<S.srs[b].d?-1:1)}
 
 /* ============ 画像（届いたものから順に入れる。ないものは絵文字・SVG のまま） ============ */
@@ -549,6 +597,21 @@ function render(){
   else el.innerHTML=viewGuide();
 }
 function todayTasks(){if(S.doneToday.date!==today())S.doneToday={date:today(),tasks:[]};return DAYS[S.day].tasks}
+/* 日ごとの記録：S.dayDone["週-日"]=[終わった課題の番号] */
+let VIEW=null; // 前の日を見ているとき {week,day}
+function viewWD(){return VIEW||{week:S.week,day:S.day}}
+function dayKey(w,d){return w+"-"+d}
+function dayDoneList(w,d){if(!S.dayDone)S.dayDone={};return S.dayDone[dayKey(w,d)]||[]}
+function dayState(w,d){const n=DAYS[d].tasks.length,k=dayDoneList(w,d).length;return k>=n?"full":k>0?"part":"none"}
+function markDayDone(w,d,ti){if(!S.dayDone)S.dayDone={};const k=dayKey(w,d);const a=S.dayDone[k]||(S.dayDone[k]=[]);if(!a.includes(ti))a.push(ti);
+  if(w===S.week&&d===S.day){if(S.doneToday.date!==today())S.doneToday={date:today(),tasks:[]};if(!S.doneToday.tasks.includes(ti))S.doneToday.tasks.push(ti)}}
+function weekStrip(vw){
+  const maxW=S.week;
+  const nav=vw.week>1||vw.week<maxW;
+  return `<div class="weekstrip"><b class="small">Week ${vw.week}「${esc((W(vw.week)||{}).title||OUTLINE[vw.week-1])}」の7日間</b>
+   <div class="days">${[1,2,3,4,5,6,7].map(d=>{const st=dayState(vw.week,d);const cur=vw.week===S.week&&d===S.day;const sel=vw.day===d;
+     return `<button class="dchip ${st} ${cur?"cur":""} ${sel?"sel":""}" data-vday="${d}"><span>${d}日目</span><i>${st==="full"?"✓":st==="part"?"◐":cur?"●":""}</i></button>`}).join("")}</div>
+   ${nav?`<div class="spread"><button class="btn sm ghost" data-act="vprev" ${vw.week<=1?"disabled":""}>← 前の週</button><button class="btn sm ghost" data-act="vnext" ${vw.week>=maxW?"disabled":""}>次の週 →</button></div>`:""}</div>`}
 function streak(){let n=0,d=today();if(!S.log[d])d=addDays(d,-1);while(S.log[d]&&S.log[d].m>0){n++;d=addDays(d,-1)}return n}
 function totalMin(){return Object.values(S.log).reduce((a,b)=>a+(b.m||0),0)}
 function mastered(type){return Object.keys(S.srs).filter(k=>k[0]===type&&S.srs[k].b>=3).length}
@@ -572,20 +635,26 @@ function boardingPass(w,behind){
     <div><small>Today</small><b>${mins}分</b></div>
    </div></section>`}
 function viewToday(){
-  const w=W(S.week), plan=DAYS[S.day], tasks=todayTasks();
+  todayTasks();
+  const vw=viewWD(),isCur=vw.week===S.week&&vw.day===S.day;
+  const w=W(S.week), vwW=W(vw.week), plan=DAYS[vw.day], tasks=plan.tasks;
   const behind=diffDays(S.startDate,today())-((S.week-1)*7+(S.day-1));
-  const done=S.doneToday.tasks;
-  const allDone=tasks.every((t,i)=>done.includes(i));
+  const done=dayDoneList(vw.week,vw.day);
+  const curDone=dayDoneList(S.week,S.day);
+  const allDone=isCur?tasks.every((t,i)=>done.includes(i)):DAYS[S.day].tasks.every((t,i)=>curDone.includes(i));
   const title=w?w.title:OUTLINE[S.week-1];
   const tm=todayMascot(allDone);
   let html=`<div class="top"><div class="hello">${pic(tm.img,"mascot","あき先生")}<div><div class="eyebrow">${today().replace(/-/g,".")} ・ ${esc(tm.msg)}</div><h1>今日のメニュー</h1></div></div>
    <div class="daybadge"><span class="streak">${pic("ic-streak","","")}連続 ${streak()}日</span>${!IN_ARTIFACT&&syncCfg()?`<br><span id="syncchip">${syncChipText()}</span>`:""}</div></div>
   <div class="tgrid"><div class="ta stack">${boardingPass(w,behind)}
   <div class="phases">${PHASES.map(p=>`<div class="${phaseOf(S.week).n===p.n?"on":""}">${IMG_HAVE.has("stamp-"+p.n)?pic("stamp-"+p.n,"stamp",""):""}<b>PHASE ${p.n} · ${p.cefr}</b>${p.name}</div>`).join("")}</div></div>
-  <div class="tb stack"><div class="spread"><h2>${S.day}日目　${plan.name}</h2><span class="mono small muted">約${tasks.reduce((a,t)=>a+t[1],0)}分</span></div>
-  <div class="tasks">${tasks.map((t,i)=>taskRow(t,i,done.includes(i),w)).join("")}</div>
-  ${allDone?`<div class="celebrate"><div class="stack"><b>今日のメニュー完了です。おつかれさまでした！</b><p class="small">明日は「${S.day<7?DAYS[S.day+1].name:"次の週の1日目"}」です。</p><div><button class="btn" data-act="nextday">次の日へ進む →</button></div></div>${S.day===7&&IMG_HAVE.has(tm.img)?pic(tm.img,"mascot",""):pic("fx-done","mascot","")}</div>`
-   :`<div class="row"><button class="btn sm ghost" data-act="nextday">今日はここまでにして次の日へ</button></div>`}</div>
+  <div class="tb stack">${weekStrip(vw)}
+  ${isCur?"":`<div class="reviewbar"><div><b>Week ${vw.week}・${vw.day}日目を見ています</b><p class="small">✓ は終わった課題です。もう一度やっても大丈夫。記録はこの日に付きます。</p></div><button class="btn sm primary" data-act="vtoday">今日（W${S.week}・${S.day}日目）に戻る</button></div>`}
+  <div class="spread"><h2>${vw.day}日目　${plan.name}</h2><span class="mono small muted">約${tasks.reduce((a,t)=>a+t[1],0)}分</span></div>
+  <div class="tasks">${tasks.map((t,i)=>taskRow(t,i,done.includes(i),vwW)).join("")}</div>
+  ${!isCur?"":allDone?`<div class="celebrate"><div class="stack"><b>今日のメニュー完了です。おつかれさまでした！</b><p class="small">明日は「${S.day<7?DAYS[S.day+1].name:"次の週の1日目"}」です。</p><div><button class="btn" data-act="nextday">次の日へ進む →</button></div></div>${S.day===7&&IMG_HAVE.has(tm.img)?pic(tm.img,"mascot",""):pic("fx-done","mascot","")}</div>`
+   :`<div class="row"><button class="btn sm ghost" data-act="nextday">今日はここまでにして次の日へ</button></div>`}
+  <button class="mapbtn" data-act="growth">${pic("aki-chart","","")}<span><b>できることマップ</b><small>何を勉強して、何ができるようになったかを一目で</small></span><span class="min">→</span></button></div>
   <div class="tc stack"><div class="stats">
    <div class="stat"><b>${streak()}</b><span>連続学習日数</span></div>
    <div class="stat"><b>${(totalMin()/60).toFixed(1)}</b><span>合計時間（h）</span></div>
@@ -638,6 +707,44 @@ function openWeek(n){
      if(sb)sb.onclick=()=>{if(sb.dataset.ok){S.week=n;S.day=1;S.doneToday={date:today(),tasks:[]};save();closeLesson();TAB="today";render();toast(`Week ${n} から始めます`)}else{sb.dataset.ok=1;sb.textContent="もう一度押すと切り替わります"}};
    })}
 
+/* ============ できることマップ ============ */
+function weekProgress(n){const w=W(n);if(!w)return null;
+  const vm=w.vocab.filter((_,i)=>(S.srs["v"+n+"-"+i]||{}).b>=3).length,vl=w.vocab.filter((_,i)=>S.srs["v"+n+"-"+i]).length;
+  const sm=w.sentences.filter((_,i)=>(S.srs["s"+n+"-"+i]||{}).b>=3).length,sl=w.sentences.filter((_,i)=>S.srs["s"+n+"-"+i]).length;
+  const days=[1,2,3,4,5,6,7].filter(d=>dayState(n,d)==="full").length;const test=S.tests[n];
+  const status=(test>=80||(days>=7&&vm>=12))?"can":(vl||sl||days||test!=null||dayDoneList(n,1).length)?"learning":n===S.week?"now":n<S.week?"skip":"todo";
+  return{w,vm,vl,sm,sl,days,test,status}}
+const ST_LABEL={can:"できた",learning:"練習中",now:"今週",skip:"未着手",todo:"これから"};
+function growthSection(){
+  const rows=[];for(let n=1;n<=52;n++)rows.push(weekProgress(n));
+  const can=rows.filter(r=>r&&r.status==="can");
+  return `<div class="card stack" id="growth"><div class="mascot-side">${pic("aki-point","","")}<div><div class="eyebrow">Can-do map</div><h2>できることマップ</h2><p class="small muted">週ごとに「何を勉強したか」と「何ができるようになったか」。週をタップすると、単語・文・文法のふりかえりができます。</p></div></div>
+   <div class="stats"><div class="stat"><b>${can.length}</b><span>できるようになった週</span></div><div class="stat"><b>W${S.week}</b><span>今いる週</span></div><div class="stat"><b>${mastered("v")}</b><span>覚えた単語</span></div><div class="stat"><b>${mastered("s")}</b><span>言える文</span></div></div>
+   ${can.length?`<div><h3>できるようになったこと</h3><ul class="canlist">${can.map(r=>`<li><span class="ok">✓</span><span><b>W${r.w.week}</b> ${esc(r.w.goal)}</span></li>`).join("")}</ul></div>`:`<p class="note">週テストで80点以上をとるか、7日間を全部終えて単語を覚えると、ここに「できるようになったこと」が並びます。</p>`}
+   ${PHASES.map(p=>`<details class="gphase" ${phaseOf(S.week).n===p.n?"open":""}><summary><b>第${p.n}期 ${p.name}</b><span class="small muted">${p.cefr}</span></summary>
+     <div class="glist">${rows.slice(p.weeks[0]-1,p.weeks[1]).map(r=>{if(!r)return"";const w=r.w;
+       return `<button class="grow ${r.status}" data-gweek="${w.week}"><span class="gw">W${String(w.week).padStart(2,"0")}<i class="gst">${ST_LABEL[r.status]}</i></span>
+        <span class="gmain"><b>${esc(w.title)}</b><small>${esc(w.goal)}</small>
+        <span class="gbars"><span class="gb"><em>単語</em><span class="bar"><span style="width:${r.vm/w.vocab.length*100}%"></span></span><em class="mono">${r.vm}/${w.vocab.length}</em></span>
+        <span class="gb"><em>文</em><span class="bar s"><span style="width:${r.sm/w.sentences.length*100}%"></span></span><em class="mono">${r.sm}/${w.sentences.length}</em></span>
+        <span class="gb"><em>日</em><span class="bar d"><span style="width:${r.days/7*100}%"></span></span><em class="mono">${r.days}/7</em></span></span></span>
+        <span class="gtest mono">${r.test!=null?r.test+"点":"—"}</span></button>`}).join("")}</div></details>`).join("")}
+  </div>`}
+function openWeekReview(n){const r=weekProgress(n);if(!r){toast("この週の教材データがまだありません");return}const w=r.w,g=w.grammar;
+  const st=k=>{const c=S.srs[k];return !c?`<i class="lv none">まだ</i>`:c.b>=3?`<i class="lv ok">覚えた</i>`:`<i class="lv mid">練習中</i>`};
+  openLesson(`Week ${n} のふりかえり`,w.cefr,`<div class="stack">${pic("scene-"+phaseOf(n).n,"scene","")}
+   <div><div class="eyebrow">${esc(w.scene)}</div><h2>${esc(w.title)}</h2><p class="goal" style="margin-top:6px">${esc(w.goal)}</p></div>
+   <div class="stats"><div class="stat"><b>${ST_LABEL[r.status]}</b><span>この週</span></div><div class="stat"><b>${r.vm}/${w.vocab.length}</b><span>覚えた単語</span></div><div class="stat"><b>${r.sm}/${w.sentences.length}</b><span>言える文</span></div><div class="stat"><b>${r.test!=null?r.test+"点":"—"}</b><span>週テスト</span></div></div>
+   <div class="card stack"><h3>この週の文法：${esc(g.title)}</h3>${g.formula?`<pre class="formula">${esc(g.formula)}</pre>`:""}${(g.points||[]).slice(0,2).map(p=>`<p class="small">${esc(p)}</p>`).join("")}</div>
+   <div class="card"><h3>単語（${w.vocab.length}）</h3><div class="tablewrap"><table>${w.vocab.map((v,i)=>`<tr><td>${spkBtn(v.en)}</td><td><b class="en">${esc(v.en)}</b>${v.pos?` <span class="chip">${esc(v.pos)}</span>`:""}<br><span class="small">${esc(v.ja)}</span>${v.tip?`<br><span class="small muted">${esc(v.tip)}</span>`:""}</td><td>${st("v"+n+"-"+i)}</td></tr>`).join("")}</table></div></div>
+   <div class="card"><h3>言えるようにする文（${w.sentences.length}）</h3>${w.sentences.map((s,i)=>`<div class="exline">${spkBtn(s.en)}<div class="t"><span class="en">${esc(s.en)}</span><span class="small">${esc(s.ja)}</span>${s.point?`<span class="small muted" style="display:block">${esc(s.point)}</span>`:""}</div>${st("s"+n+"-"+i)}</div>`).join("")}</div>
+   <div class="row"><button class="btn accent" data-rv="v">単語をもう一度</button><button class="btn" data-rv="s">文をもう一度</button><button class="btn" data-rv="g">文法を読む</button><button class="btn" data-rv="w">この週の練習メニュー</button></div></div>`,
+  body=>{body.querySelectorAll("[data-rv]").forEach(b=>b.onclick=()=>{const k=b.dataset.rv;const back=()=>{save();closeLesson();setTimeout(()=>openWeekReview(n),50)};
+    if(k==="v")lessonCards(w.vocab.map((it,i)=>({key:"v"+n+"-"+i,type:"v",item:it,week:n})),"単語カード W"+n,()=>{logMinutes(8,"vocab");back()});
+    else if(k==="s")lessonCards(w.sentences.map((it,i)=>({key:"s"+n+"-"+i,type:"s",item:{ja:it.ja,en:it.en,note:it.point},week:n})),"文カード W"+n,()=>{logMinutes(8,"sentences");back()});
+    else if(k==="g")lessonGrammar(w,()=>{logMinutes(5,"grammar");back()});
+    else openWeek(n)})})}
+
 /* ============ 画面：記録 ============ */
 function viewRecord(){
   const days=Object.keys(S.log).filter(d=>S.log[d].m>0).length;
@@ -649,6 +756,7 @@ function viewRecord(){
   const tw=Object.keys(S.tests).map(Number).sort((a,b)=>a-b);
   return `<div class="top"><div class="hello">${pic("aki-chart","mascot","")}<div><div class="eyebrow">あなたの記録</div><h1>記録</h1></div></div></div>
   <div class="stack">
+  ${growthSection()}
   <div class="stats s6">
    <div class="stat"><b>${days}</b><span>学習した日</span></div>
    <div class="stat"><b>${(speakingMinutes()/60).toFixed(1)}</b><span>英語で話した（h）</span></div>
@@ -751,8 +859,9 @@ function closeLesson(){stopSpeak();keepAwake(false);$("#lesson").hidden=true;$("
 $("#lback").onclick=closeLesson;
 function finishBtn(label){return `<div class="row" style="margin-top:8px"><button class="btn primary" data-finish>${label||"完了にする"}</button></div>`}
 function bindFinish(body,cb){body.querySelectorAll("[data-finish]").forEach(b=>b.onclick=cb)}
+let TASK_AT=null; // 課題を始めたときの {week,day}
 function completeTask(ti,min,name){
-  if(ti!=null){if(S.doneToday.date!==today())S.doneToday={date:today(),tasks:[]};if(!S.doneToday.tasks.includes(ti))S.doneToday.tasks.push(ti)}
+  if(ti!=null){const at=TASK_AT||{week:S.week,day:S.day};markDayDone(at.week,at.day,ti)}
   logMinutes(min,name);save();closeLesson();toast("記録しました")}
 
 function runTask(t,w,ti){
@@ -766,9 +875,11 @@ function runTask(t,w,ti){
 /* --- 文法 --- */
 function lessonGrammar(w,done){const g=w.grammar;
   openLesson("文法ミニ講義",`W${w.week}`,`<div class="stack"><div class="mascot-side">${pic("aki-study","","")}<div><div class="eyebrow">今週の文法</div><h2>${esc(g.title)}</h2></div></div>
-   ${g.points.map((p,i)=>`<div class="point"><span class="n">${i+1}</span><p>${esc(p)}</p></div>`).join("")}
-   <div class="card"><div class="spread" style="margin-bottom:4px"><h3>例文</h3><button class="btn sm" id="playall">全部聞く</button></div>
-   ${g.examples.map(e=>`<div class="exline">${spkBtn(e.en)}<div class="t"><span class="en">${esc(e.en)}</span><span class="small muted">${esc(e.ja)}</span></div></div>`).join("")}</div>
+   ${g.formula?`<div class="card stack"><div class="eyebrow">形（これだけ覚える）</div><pre class="formula">${esc(g.formula)}</pre></div>`:""}
+   <div class="card stack"><h3>ポイント</h3>${g.points.map((p,i)=>`<div class="point"><span class="n">${i+1}</span><p>${esc(p)}</p></div>`).join("")}</div>
+   <div class="card"><div class="spread" style="margin-bottom:4px"><h3>例文と解説</h3><button class="btn sm" id="playall">全部聞く</button></div>
+   ${g.examples.map(e=>`<div class="exline">${spkBtn(e.en)}<div class="t"><span class="en">${esc(e.en)}</span><span class="small">${esc(e.ja)}</span>${e.note?`<span class="exnote">💡 ${esc(e.note)}</span>`:""}</div></div>`).join("")}</div>
+   ${(g.mistakes||[]).length?`<div class="card stack"><h3>よくある間違い</h3>${g.mistakes.map(m=>`<div class="mistake"><div class="ng"><i>✕</i><span class="en">${esc(m.ng)}</span></div><div class="okk"><i>○</i><span class="en">${esc(m.ok)}</span>${spkBtn(m.ok)}</div><p class="small">${esc(m.why)}</p></div>`).join("")}</div>`:""}
    ${g.tip?`<div class="tip"><b>コツ</b>　${esc(g.tip)}</div>`:""}
    <p class="note">例文は1文ずつ聞いて、まねして3回声に出しましょう。</p>${finishBtn("理解できた・完了")}</div>`,
    body=>{bindFinish(body,done);body.querySelector("#playall").onclick=async()=>{const tk=++speakToken;for(const e of g.examples){if(tk!==speakToken)break;await speak(e.en);await sleep(900)}}})}
@@ -782,8 +893,8 @@ function lessonCards(cards,title,done,isReview){
     if(i>=q.length){body.innerHTML=`<div class="stack">${pic(cards.some(c=>c.type==="v")&&IMG_HAVE.has("aki-cards")?"aki-cards":IMG_HAVE.has("aki-check")?"aki-check":"aki-cheer","empty-img","")}<h2>おつかれさまでした</h2><p>${total}枚のうち、わかった ${cnt[2]}・あいまい ${cnt[1]}・わからない ${cnt[0]}</p><p class="small muted">「わからない」のカードは明日以降の復習に出てきます。</p>${finishBtn()}</div>`;bindFinish(body,done);return}
     const c=q[i],it=c.item,isV=c.type==="v";
     const front=isV?(dir()==="en"?`<div class="word">${esc(it.en)}</div>`:`<div class="jp">${esc(it.ja)}</div>`):`<div class="jp">${esc(it.q||it.ja)}</div><p class="small muted">${esc(it.hint||"英語で言ってみましょう")}</p>`;
-    const back=isV?`<div class="word">${esc(it.en)}</div><div class="jp">${esc(it.ja)}</div><div class="ex"><div class="row" style="justify-content:center">${spkBtn(it.ex)}<span class="en">${esc(it.ex)}</span></div><div>${esc(it.exJa)}</div></div>`
-      :`<div class="jp" style="font-size:16px;font-weight:500" >${esc(it.q||it.ja)}</div><div class="row" style="justify-content:center">${spkBtn(it.en)}<span class="word" style="font-size:24px">${esc(it.en)}</span></div>${it.q&&it.ja?`<div class="small muted">${esc(it.ja)}</div>`:""}${it.note?`<div class="tip" style="text-align:left">${esc(it.note)}</div>`:""}`;
+    const back=isV?`<div class="word">${esc(it.en)}</div><div class="jp">${it.pos?`<span class="chip">${esc(it.pos)}</span> `:""}${esc(it.ja)}</div>${it.tip?`<div class="cardtip">💡 ${esc(it.tip)}</div>`:""}<div class="ex"><div class="row" style="justify-content:center">${spkBtn(it.ex)}<span class="en">${esc(it.ex)}</span></div><div>${esc(it.exJa)}</div></div>`
+      :`<div class="jp" style="font-size:16px;font-weight:500" >${esc(it.q||it.ja)}</div><div class="row" style="justify-content:center">${spkBtn(it.en)}<span class="word" style="font-size:24px">${esc(it.en)}</span></div>${it.q&&it.ja?`<div class="small muted">${esc(it.ja)}</div>`:""}${it.note||it.point?`<div class="cardtip">💡 ${esc(it.note||it.point)}</div>`:""}`;
     body.innerHTML=`<div class="stack"><div class="spread"><span class="small muted mono">${Math.min(i+1,q.length)} / ${q.length}</span>${isV?`<button class="btn sm ghost" id="dirbtn">${dir()==="en"?"英→日":"日→英"} を切替</button>`:""}</div>
      <div class="progress"><span style="width:${i/q.length*100}%"></span></div>
      <div class="flash" id="flash">${flipped?back:front}${!flipped&&isV&&dir()==="en"?spkBtn(it.en):""}${isReview?`<span class="chip">${c.noteLabel?esc(c.noteLabel):"W"+c.week}</span>`:""}</div>
@@ -815,7 +926,7 @@ function lessonSentences(w,arg,done){
     const c=items[i];
     body.innerHTML=`<div class="stack"><div class="spread"><span class="small muted mono">${i+1} / ${items.length}</span><span class="small muted">日本語を見て、3秒以内に英語を口に出す</span></div>
      <div class="progress"><span style="width:${i/items.length*100}%"></span></div>
-     <div class="flash"><div class="jp">${esc(c.item.ja)}</div>${show?`<div class="row" style="justify-content:center">${spkBtn(c.item.en)}<span class="word" style="font-size:24px">${esc(c.item.en)}</span></div>`:""}</div>
+     <div class="flash"><div class="jp">${esc(c.item.ja)}</div>${show?`<div class="row" style="justify-content:center">${spkBtn(c.item.en)}<span class="word" style="font-size:24px">${esc(c.item.en)}</span></div>${c.item.point?`<div class="cardtip">💡 ${esc(c.item.point)}</div>`:""}`:""}</div>
      ${show?`<div class="rate"><button class="r0" data-r="0">言えなかった<small>もう一度</small></button><button class="r1" data-r="1">少し違った<small>明日</small></button><button class="r2" data-r="2">言えた<small>先へ延ばす</small></button></div>`
        :`<button class="btn primary" id="reveal" style="justify-content:center;width:100%">答えを見る（声に出してから）</button>`}
      ${HAS_MIC&&!show?`<button class="btn" id="mic" style="justify-content:center;width:100%">🎤 話して答える</button>`:""}
@@ -1363,6 +1474,7 @@ function mergeRemote(d){if(!d||!d.state)return;const R=merge(d.state),L=S;
   const newer=(R.updatedAt||0)>(L.updatedAt||0)?R:L,older=newer===L?R:L;const out=Object.assign({},newer);
   out.srs=Object.assign({},L.srs);Object.entries(R.srs||{}).forEach(([k,c])=>{const a=out.srs[k];if(!a||c.d>a.d||(c.d===a.d&&c.b>a.b))out.srs[k]=c});
   out.log=Object.assign({},L.log);Object.entries(R.log||{}).forEach(([day,l])=>{const a=out.log[day];out.log[day]=!a?l:{m:Math.max(a.m||0,l.m||0),s:Math.max(a.s||0,l.s||0),t:(a.t||[]).length>=(l.t||[]).length?a.t:l.t}});
+  out.dayDone=Object.assign({},L.dayDone||{});Object.entries(R.dayDone||{}).forEach(([k,a])=>{out.dayDone[k]=[...new Set([...(out.dayDone[k]||[]),...a])]});
   out.tests=Object.assign({},L.tests);Object.entries(R.tests||{}).forEach(([w,p])=>{out.tests[w]=Math.max(out.tests[w]||0,p)});
   const uniq=(arr,key)=>{const m=new Map();arr.forEach(x=>{if(x)m.set(key(x),x)});return [...m.values()]};
   out.scores=uniq([...(older.scores||[]),...(newer.scores||[])],x=>x.date+"|"+x.test+"|"+x.result);
@@ -1415,13 +1527,18 @@ async function syncJoin(code){code=normCode(code);if(code.replace(/-/g,"").lengt
 document.addEventListener("click",e=>{
   const s=e.target.closest("[data-say]");if(s){e.stopPropagation();stopSpeak();speak(s.dataset.say);return}
   const tb=e.target.closest(".nav [data-tab]");if(tb){TAB=tb.dataset.tab;render();window.scrollTo(0,0);return}
-  const tk=e.target.closest("#app [data-task]");if(tk){const i=+tk.dataset.task;runTask(DAYS[S.day].tasks[i],W(S.week),i);return}
+  const tk=e.target.closest("#app [data-task]");if(tk){const i=+tk.dataset.task;const vw=viewWD();TASK_AT={week:vw.week,day:vw.day};runTask(DAYS[vw.day].tasks[i],W(vw.week),i);return}
+  const vd=e.target.closest("#app [data-vday]");if(vd){const d=+vd.dataset.vday;const vw=viewWD();VIEW=(vw.week===S.week&&d===S.day)?null:{week:vw.week,day:d};render();return}
+  const gw=e.target.closest("[data-gweek]");if(gw){openWeekReview(+gw.dataset.gweek);return}
   const pe=e.target.closest("#app [data-person]");if(pe){openPerson(pe.dataset.person);return}
   const nt=e.target.closest("#app [data-note]");if(nt){openNote(nt.dataset.note);return}
-  const wk=e.target.closest("#app [data-week]");if(wk){openWeek(+wk.dataset.week);return}
+  const wk=e.target.closest("#app [data-week]");if(wk){const n=+wk.dataset.week;n<=S.week?openWeekReview(n):openWeek(n);return}
   const a=e.target.closest("#app [data-act]");if(!a)return;
   const act=a.dataset.act;
-  if(act==="nextday"){if(S.day<7)S.day++;else if(S.week<52){S.week++;S.day=1}S.doneToday={date:today(),tasks:[]};save();render();window.scrollTo(0,0);toast(`Week ${S.week} の ${S.day}日目へ`)}
+  if(act==="vprev"||act==="vnext"){const vw=viewWD();const nw=Math.max(1,Math.min(S.week,vw.week+(act==="vprev"?-1:1)));VIEW=nw===S.week?null:{week:nw,day:1};render();return}
+  if(act==="vtoday"){VIEW=null;render();window.scrollTo(0,0);return}
+  if(act==="growth"){TAB="record";VIEW=null;render();setTimeout(()=>{const g=document.getElementById("growth");if(g)g.scrollIntoView({behavior:"smooth"})},60);return}
+  if(act==="nextday"){VIEW=null;if(S.day<7)S.day++;else if(S.week<52){S.week++;S.day=1}S.doneToday={date:today(),tasks:[]};save();render();window.scrollTo(0,0);toast(`Week ${S.week} の ${S.day}日目へ`)}
   else if(act==="addscore"){const r=$("#sc-res").value.trim();if(!r){toast("結果を入力してください");return}S.scores.push({date:$("#sc-date").value,test:$("#sc-test").value,result:r});save();render();toast("記録しました")}
   else if(act==="newnote"){openNoteEditor()}
   else if(act==="quickpaste"){pasteInto($("#quick-raw"))}
