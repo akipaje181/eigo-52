@@ -460,6 +460,19 @@ h2{font-weight:800}
 .dc-img{width:130px;height:auto;margin:0 auto;display:block}
 .checkbtn.hot{border-color:#6C5CE7;background:linear-gradient(135deg,#F1EEFF,#fff)}
 .opts.en .opt{font-family:var(--f-en,inherit)}
+.pchap h2{font-size:22px}.pskill{font-weight:700;color:var(--accent-ink)}
+.pstruct{display:flex;flex-direction:column;gap:8px}.pstruct>div{display:flex;gap:10px;align-items:flex-start}
+.pstruct .n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--yellow-soft);color:#9A6B00;display:grid;place-items:center;font-weight:900;font-size:13px}
+.pstruct small{display:block;color:var(--muted);font-size:12.5px}
+details.card summary{cursor:pointer;list-style:none;padding:2px 0}details.card summary::-webkit-details-marker{display:none}
+details.card[open] summary{margin-bottom:8px}
+.bookrow{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--line);padding:10px 0}
+.bookrow:last-child{border-bottom:none}.bookrow small{display:block;font-size:12px}.bookrow .now{color:var(--coral,#FF7A45);font-weight:900}
+.teachbtn{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;background:linear-gradient(135deg,#FFE9DD,#FFF6DD);border:none;border-radius:20px;padding:14px 16px;box-shadow:var(--shadow)}
+.teachbtn .ic{width:52px;height:52px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:26px;overflow:hidden}
+.teachbtn .ic img{width:48px;height:48px;object-fit:contain;object-position:top}
+.teachbtn b{font-family:var(--f-head);font-size:17px}.teachbtn small{display:block;font-size:12.5px;color:var(--muted)}
+.tchoice{display:flex;flex-wrap:nowrap;padding:8px 10px;border-radius:12px;border:1px solid var(--line);align-items:flex-start}.tchoice input{flex:none;margin-top:2px}.tchoice.on{border-color:var(--accent);background:var(--accent-soft)}
 </style>
 </head>
 <body>
@@ -487,6 +500,10 @@ h2{font-weight:800}
 <script src="data/phase3.js"></script>
 <script src="data/phase4.js"></script>
 <script src="data/hitokoto.js"></script>
+<script src="data/present1.js"></script>
+<script src="data/present2.js"></script>
+<script src="data/present3.js"></script>
+<script src="data/present4.js"></script>
 <script>
 "use strict";
 /* ============ 52週の骨組み（データ未読込でもロードマップは表示） ============ */
@@ -520,7 +537,7 @@ const DAYS={
  6:{name:"週テストと話す日",tasks:[["test",15],["roleplay",15]]},
  7:{name:"耳の日",tasks:[["input",20],["review",10],["speak",10]]}
 };
-const TASKNAME={grammar:"文法ミニ講義",vocab:"単語カード",sentences:"瞬間英作文",shadow:"シャドーイング",review:"復習カード",writing:"英語日記＋AI添削",test:"週テスト",roleplay:"AIと英会話ロールプレイ",input:"耳だけ学習（外部教材）",speak:"話す練習"};
+const TASKNAME={present:"プレゼン練習（1時間）",listen:"耳：英語のプレゼンを聞く",wrap:"復習とふりかえり",grammar:"文法ミニ講義",vocab:"単語カード",sentences:"瞬間英作文",shadow:"シャドーイング",review:"復習カード",writing:"英語日記＋AI添削",test:"週テスト",roleplay:"AIと英会話ロールプレイ",input:"耳だけ学習（外部教材）",speak:"話す練習"};
 const SHADOWSTEP={listen:"①聞くだけ",read:"②見ながら聞く",overlap:"③重ねて読む",shadow:"④シャドーイング",role:"⑤役になりきる"};
 
 /* ============ 保存（db があればアカウントに、なければこの端末に） ============ */
@@ -634,7 +651,7 @@ function rateCard(key,r){const c=S.srs[key]||{b:0,d:today()};
   S.srs[key]=c;markStudied(key,r)}
 function markStudied(key,r){const d=today();if(!S.studied)S.studied={};const m=S.studied[d]||(S.studied[d]={});m[key]=Math.min(m[key]==null?2:m[key],r);
   const ks=Object.keys(S.studied).sort();while(ks.length>14)delete S.studied[ks.shift()]}
-function cardFromKey(k){const hk=k.match(/^h(\d+)$/);if(hk)return hkCard(+hk[1]);const iv=k.match(/^i(\d)-(\d+)$/);if(iv)return introCard(+iv[1],+iv[2]);const n=k.match(/^n([a-z0-9]+)-([svgfd])-(\d+)$/);if(n)return noteCard(n[1],n[2],+n[3]);const m=k.match(/^([vs])(\d+)-(\d+)$/);if(!m)return null;const w=W(+m[2]);if(!w)return null;
+function cardFromKey(k){const pk=k.match(/^p(\d+)-(\d+)$/);if(pk)return presentCard(+pk[1],+pk[2]);const hk=k.match(/^h(\d+)$/);if(hk)return hkCard(+hk[1]);const iv=k.match(/^i(\d)-(\d+)$/);if(iv)return introCard(+iv[1],+iv[2]);const n=k.match(/^n([a-z0-9]+)-([svgfd])-(\d+)$/);if(n)return noteCard(n[1],n[2],+n[3]);const m=k.match(/^([vs])(\d+)-(\d+)$/);if(!m)return null;const w=W(+m[2]);if(!w)return null;
   const raw=(m[1]==="v"?w.vocab:w.sentences)[+m[3]];if(!raw)return null;const it=m[1]==="s"?{ja:raw.ja,en:raw.en,note:raw.point}:raw;return{key:k,type:m[1],item:it,week:+m[2]}}
 function dueKeys(){const t=today();return Object.keys(S.srs).filter(k=>S.srs[k].d<=t).sort((a,b)=>S.srs[a].d<S.srs[b].d?-1:1)}
 
@@ -653,7 +670,7 @@ function todayMascot(allDone){const h=new Date().getHours();const studiedBefore=
 const CH_ICON={"WhatsApp":"ch-chat","電話":"ch-phone","Zoom・Meet":"ch-video","対面":"ch-meet","メール":"ch-mail"};
 function chChip(ch){if(!ch)return"";const n=CH_ICON[ch];return `<span class="chip">${n&&IMG_HAVE.has(n)?pic(n,"",""):""}${esc(ch)}</span>`}
 function pic(n,cls,alt){const m=imgName(n);return m?`<img class="${cls||""}" src="${imgURL(m)}" alt="${esc(alt||"")}" decoding="async">`:""}
-const TASK_EMOJI={grammar:"📘",vocab:"🔤",sentences:"⚡",shadow:"🎧",review:"🔁",writing:"✏️",test:"📝",roleplay:"💬",input:"👂",speak:"🗣️"};
+const TASK_EMOJI={present:"🎤",listen:"📻",wrap:"🌙",grammar:"📘",vocab:"🔤",sentences:"⚡",shadow:"🎧",review:"🔁",writing:"✏️",test:"📝",roleplay:"💬",input:"👂",speak:"🗣️"};
 function partnerPic(name,cls){const nm=name||"";const k=/Priya|Mehta|Ms\.|Mrs\.|Madam|Anita|Neha|Pooja|Sangeeta|Isha|Kavya|Divya/i.test(nm)?"partner-priya":(/Sharma|Mr\.|Sir|Gupta|Verma|Singh|Kumar/i.test(nm)&&IMG_HAVE.has("partner-sharma"))?"partner-sharma":"partner-raj";return pic(k,cls||"avatar","")}
 function taskIcon(type){return IMG_HAVE.has("ic-"+type)?pic("ic-"+type,"",""):(TASK_EMOJI[type]||"•")}
 function navImages(){document.querySelectorAll(".nav [data-tab]").forEach(b=>{const n="tab-"+b.dataset.tab;if(IMG_HAVE.has(n)&&!b.querySelector("img")){const s=b.querySelector("svg");if(s)s.outerHTML=pic(n,"","")}})}
@@ -670,17 +687,17 @@ function render(){
   else if(TAB==="record")el.innerHTML=viewRecord();
   else el.innerHTML=viewGuide();
 }
-function todayTasks(){if(S.doneToday.date!==today())S.doneToday={date:today(),tasks:[]};return DAYS[S.day].tasks}
+function todayTasks(){ensureCourse();if(S.doneToday.date!==today())S.doneToday={date:today(),tasks:[]};return planTasks(S.week,S.day)}
 /* 日ごとの記録：S.dayDone["週-日"]=[終わった課題の番号] */
 let VIEW=null; // 前の日を見ているとき {week,day}
 function viewWD(){return VIEW||{week:S.week,day:S.day}}
 function dayKey(w,d){return w+"-"+d}
 function dayDoneList(w,d){if(!S.dayDone)S.dayDone={};return S.dayDone[dayKey(w,d)]||[]}
-function dayState(w,d){const n=DAYS[d].tasks.length,k=dayDoneList(w,d).length;return k>=n?"full":k>0?"part":"none"}
+function dayState(w,d){const n=planTasks(w,d).length,k=dayDoneList(w,d).length;return k>=n?"full":k>0?"part":"none"}
 function markDayDone(w,d,ti){if(!S.dayDone)S.dayDone={};const k=dayKey(w,d);const a=S.dayDone[k]||(S.dayDone[k]=[]);if(!a.includes(ti))a.push(ti);
   if(w===S.week&&d===S.day){if(S.doneToday.date!==today())S.doneToday={date:today(),tasks:[]};if(!S.doneToday.tasks.includes(ti))S.doneToday.tasks.push(ti)}}
 /* 日の状態：完了／未完了（過ぎた日で残りあり）／今日／これから */
-function dayInfo(w,d){const n=DAYS[d].tasks.length,k=dayDoneList(w,d).length;
+function dayInfo(w,d){const n=planTasks(w,d).length,k=dayDoneList(w,d).length;
   const past=w<S.week||(w===S.week&&d<S.day),cur=w===S.week&&d===S.day;
   if(k>=n)return{cls:"full",icon:"✓",label:"完了",left:0,n,k};
   if(past)return{cls:"miss",icon:"あと"+(n-k),label:"未完了",left:n-k,n,k};
@@ -702,7 +719,7 @@ function boardingPass(w,behind){
   const pos=((S.week-1)*7+(S.day-1))/(52*7)*100;const ph=phaseOf(S.week);
   const segs=PHASES.map((p,i)=>`<span class="seg on" style="left:${i*25}%;width:${Math.max(0,Math.min(25,pos-i*25))}%"></span>`).join("");
   const dots=[25,50,75].map(x=>`<span class="dot" style="left:${x}%"></span>`).join("");
-  const mins=DAYS[S.day].tasks.reduce((a,t)=>a+t[1],0);
+  const mins=planTasks(S.week,S.day).reduce((a,t)=>a+t[1],0);
   return `<section class="pass ${IMG_HAVE.has("hero-sky")?"has-img":""}" style="${IMG_HAVE.has("hero-sky")?`--hero:url(${imgURL("hero-sky")})`:""}" aria-label="今週の学習">
    <div class="pass-main">
     <div class="pass-top"><span>BOARDING PASS · 英語52週</span><span>PHASE ${ph.n}/4</span></div>
@@ -720,11 +737,11 @@ function boardingPass(w,behind){
 function viewToday(){
   todayTasks();
   const vw=viewWD(),isCur=vw.week===S.week&&vw.day===S.day;
-  const w=W(S.week), vwW=W(vw.week), plan=DAYS[vw.day], tasks=plan.tasks;
+  const w=W(S.week), vwW=W(vw.week), plan=DAYS[vw.day], tasks=planTasks(vw.week,vw.day);
   const behind=diffDays(S.startDate,today())-((S.week-1)*7+(S.day-1));
   const done=dayDoneList(vw.week,vw.day);
   const curDone=dayDoneList(S.week,S.day);
-  const allDone=isCur?tasks.every((t,i)=>done.includes(i)):DAYS[S.day].tasks.every((t,i)=>curDone.includes(i));
+  const allDone=isCur?tasks.every((t,i)=>done.includes(i)):planTasks(S.week,S.day).every((t,i)=>curDone.includes(i));
   const title=w?w.title:OUTLINE[S.week-1];
   const tm=todayMascot(allDone);
   let html=`<div class="top"><div class="hello">${pic(tm.img,"mascot","あき先生")}<div><div class="eyebrow">${today().replace(/-/g,".")} ・ ${esc(tm.msg)}</div><h1>今日のメニュー</h1></div></div>
@@ -748,7 +765,9 @@ function viewToday(){
    <div class="stat"><b>${mastered("v")}</b><span>覚えた単語</span></div>
    <div class="stat"><b>${(speakingMinutes()/60).toFixed(1)}</b><span>英語で話した（h）</span></div>
   </div>
+  ${teacherRow()}
   ${hkTodayCard()}
+  ${bookRow()}
   ${introRow()}
   <p class="note">アプリ以外に、毎日<b>20分の「耳だけ学習」</b>（通勤・施術の合間に今週の会話や VOA／BBC を聞く）をすると、1年で約600時間になります。${S.week>=14?"第2期からは<b>オンライン英会話25分</b>も足しましょう。":""}</p>
   ${SAMPLE||!IN_ARTIFACT?"":`<p class="note">AI添削・AI英会話は claude.ai にサインインして開くと使えます。</p>`}
@@ -765,6 +784,9 @@ function taskRow(t,i,done,w,miss){
   else if(type==="roleplay")sub=w?w.speaking:"";
   else if(type==="test")sub="単語10問＋並べ替え5問";
   else if(type==="input")sub=phaseOf(S.week).res.slice(-1)[0][0];
+  else if(type==="present"){const pw=PW(w?w.week:S.week);sub=(PDAY[arg]||[""])[0]+(pw?"："+pw.title:"")}
+  else if(type==="listen")sub="プレゼンやビジネスの英語を聞く。気に入った1文をまねする";
+  else if(type==="wrap")sub="復習カード・ひとこと英語・1日のふりかえりテスト";
   else if(type==="speak")sub="お題："+speakTopic(w).ja+"（Claude の音声モード・実際の会話・ひとりで）";
   return `<button class="task ${done?"done":""} ${miss?"miss":""}" data-task="${i}" data-type="${type}"><span class="ic">${done?"✓":taskIcon(type)}</span><span><span class="num">STEP ${i+1}${done?`<em class="tstate ok">完了</em>`:miss?`<em class="tstate ng">未完了</em>`:""}</span><b>${TASKNAME[type]}</b><small>${esc(sub)}</small></span><span class="min">${min}分</span></button>`}
 
@@ -913,6 +935,7 @@ function viewGuide(){
   <div class="card stack"><h3>設定</h3>
    <label class="small" for="set-accent">読み上げの英語</label>
    <select id="set-accent"><option value="en-US">アメリカ英語</option><option value="en-GB">イギリス英語</option><option value="en-IN">インド英語（端末に声がある場合）</option></select>
+   <label class="row small" for="set-course" style="gap:8px;cursor:pointer"><input type="checkbox" id="set-course" ${S.settings.course==="3h"?"checked":""} style="width:20px;height:20px;accent-color:var(--green)"> <span><b>1日3時間コース（プレゼン付き）</b><br><span class="muted">いつものメニュー（約1時間）に、プレゼン練習1時間・耳30分・復習とふりかえり30分を足します。切りかえた日から適用され、前の日の記録はそのままです。</span></span></label>
    ${IN_ARTIFACT?"":`<label class="row small" for="set-natural" style="gap:8px;cursor:pointer"><input type="checkbox" id="set-natural" ${S.settings.natural!==false?"checked":""} style="width:20px;height:20px;accent-color:var(--green)"> <span><b>自然な録音の声を使う（おすすめ）</b><br><span class="muted">教材の英文は、人に近いニューラル音声（アメリカ英語の Ava・Andrew、インド英語の Prabhat・Neerja）で流れます。AI の返事など、録音のない文だけ下の端末の声で読みます。</span></span></label>`}
    <label class="small" for="set-voice">声の種類（この端末に入っている英語の声）</label>
    <select id="set-voice"><option value="">おまかせ（いちばん滑らかな声を自動で選ぶ）</option>${goodVoices().map(v=>`<option value="${esc(v.name)}|${esc(v.voiceURI||"")}" ${S.settings.voiceName===v.name&&(!S.settings.voiceURI||S.settings.voiceURI===v.voiceURI)?"selected":""}>${["","◎ ","★ "][voiceQuality(v)]}${esc(v.name)}（${esc(v.lang)}）${["","・拡張","・プレミアム"][voiceQuality(v)]}</option>`).join("")}</select>
@@ -955,6 +978,9 @@ function completeTask(ti,min,name){
 
 function runTask(t,w,ti){
   const [type,min,arg]=t;
+  if(type==="present"){const pw=PW(TASK_AT?TASK_AT.week:S.week);if(!pw){toast("この週のプレゼン教材がまだありません");return}lessonPresent(pw,arg,()=>completeTask(ti,min,"present"));return}
+  if(type==="listen"){lessonListen(()=>completeTask(ti,min,"listen"),min);return}
+  if(type==="wrap"){lessonWrap(()=>completeTask(ti,min,"wrap"));return}
   if(!w&&type!=="review"&&type!=="input"&&type!=="speak"){toast("この週の教材データがまだありません");return}
   const done=(alt)=>completeTask(ti,min,typeof alt==="string"?alt:type);
   ({grammar:()=>lessonGrammar(w,done),vocab:()=>lessonCards(w.vocab.slice(arg[0],arg[1]).map((it,k)=>({key:`v${w.week}-${arg[0]+k}`,type:"v",item:it,week:w.week})),"単語カード",done),
@@ -1449,6 +1475,185 @@ function openIntro(tab){let cur=tab||0;
     }
     draw()})}
 
+/* ============ 先生と話す（Claude のプロジェクト「英会話の先生」と音声で会話） ============
+   先生のルールは docs/英会話の先生_プロジェクトの指示.md と同じ（TEACHER_RULES）。最初に1回だけプロジェクトの指示に貼ってもらう */
+const TEACHER_RULES="あなたは、岩田章弘（いわた あきひろ / Aki）さん専属の英会話の先生です。名前は「Emma 先生」。明るく、ていねいで、ほめ上手な先生として、音声でも文字でも会話の相手をします。\n\n## 生徒について\n- 岩田章弘さん。横浜出身。愛媛県大洲市で「あき鍼灸整骨院」を2018年10月に開業（スタッフ4名）。鍼灸師・柔道整復師。元アスレティックトレーナー。\n- 提携院への経営コンサル、予約・顧客管理システムの提供、美容と健康の事業、インドの企業向けのおもてなしコンサル、家族の酒店「小谷酒店」（1957年創業）の国際担当もしている。\n- インドの取引先と英語で仕事をするため、中学英語から1年でビジネス英語とプレゼンができるようになることを目指して、毎日3時間勉強している。\n- 学習アプリ「英語52週トレーニング」を使っている。アプリの「先生と話す」から、その日のレッスン内容（週・レベル・文法・単語・プレゼンの課題など）が貼り付けられて会話が始まる。\n\n## 話し方のルール\n1. 生徒のレベル（貼り付けられた CEFR）に合わせた、短くはっきりした英語で話す。A1〜A2 のうちは1文を短く、やさしい単語で。\n2. 質問は1回に1つだけ。生徒がたくさん話せるように、先生の話は短くする（先生3割・生徒7割）。\n3. 会話の途中では、まちがいを止めて直さない。通じないときだけ、やさしく言い直して確かめる（\"Do you mean ...?\"）。\n4. 生徒が日本語で話したり、\"How do you say ... in English?\" と聞いたら、英語での言い方を1つ教えて、その文をもう一度言ってもらってから会話を続ける。\n5. 生徒が詰まったら、ヒントを出す（最初の2〜3語、または選択肢を2つ）。\n6. よいところは具体的にほめる（\"Great use of 'because'!\" など）。\n7. インドの取引先との場面では、ときどきインドの人の役になり、インド英語らしい言い方（\"Kindly ...\", \"do the needful\", \"prepone\" など）も少し入れて、聞き取りに慣れさせる。\n8. 経歴や数字は、生徒が話したことと上の「生徒について」だけを使い、作り話をしない。\n\n## レッスンの流れ（「先生と話す」から始めたとき）\n貼り付けられた内容に「レッスンの種類」が書いてあるので、それに合わせる。決まっていないときは次の流れで約15分。\n1. あいさつと雑談（2分）\n2. 今週の文法と単語を使う質問（5分）\n3. 今週の場面のロールプレイ（5分）\n4. 今週のプレゼンの一部を言ってもらい、聞き手として1〜2個質問する（3分）\n\n## 終わり方\n生徒が「終わり」「finish」「That's all」と言ったら、会話をやめて、やさしい日本語で次をまとめる。\n1. よかったところ（2つ）\n2. 生徒が言った文で、直すと自然になるもの（最大5つ。「言った文 → 自然な文」と、短い理由）\n3. 今日の大事な表現（3つ。英語と日本語）\n4. 次のレッスンまでの小さな宿題（1つ）\n\n最後に、2〜4 をアプリの「会話ノート」に貼り付けられるよう、そのままコピーしやすい形で書く。";
+const TEACH_TYPES=[["today","今日のレッスン（おすすめ）","今週の文法・単語・場面とプレゼンを使って15分"],["present","今週のプレゼンを聞いてもらう","原稿を発表して、質問とアドバイスをもらう"],["india","インドの取引先の役で会話","商談・打ち合わせのロールプレイ"],["review","まちがえたところの復習","最近まちがえた文とひとこと英語を使って"],["free","自由に雑談","今日あったこと・仕事・趣味など"]];
+function teacherRow(){return `<button class="teachbtn" data-act="teacher"><span class="ic">${IMG_HAVE.has("aki-online")?pic("aki-online","",""):"👩‍🏫"}</span><span><b>先生と話す</b><small>Claude の英会話の先生と、声でレッスン。今日の内容に合わせて話してくれます</small></span><span class="min">→</span></button>`}
+function recentMistakes(){const st=S.studied||{};return Object.keys(st).sort().slice(-3).flatMap(d=>Object.entries(st[d]).filter(([k,r])=>r<2).map(([k])=>k)).map(cardFromKey).filter(Boolean).map(c=>c.item.en).filter((x,i,a)=>x&&a.indexOf(x)===i).slice(0,6)}
+function teacherPrompt(type){const w=W(S.week),pw=PW(S.week),cefr=w?w.cefr:phaseOf(S.week).cefr;const t=TEACH_TYPES.find(x=>x[0]===type)||TEACH_TYPES[0];
+  const hk=(S.hk&&S.hk.ids||[]).map(hkFind).filter(Boolean).map(h=>h.ja+" = "+h.ans[0].en);const mis=recentMistakes();const own=pw?myScript(pw.week):"";
+  return [`【英語52週トレーニング】Week ${S.week}・${S.day}日目　レベル CEFR ${cefr}`,
+   `レッスンの種類：${t[1]}（${t[2]}）`,
+   w?`今週のテーマ：${w.title}／文法：${w.grammar.title}／場面：${w.scene}`:"",
+   w?`今週の単語：${w.vocab.slice(0,14).map(v=>v.en).join(", ")}`:"",
+   pw?`今週のプレゼン：${pw.title}（${pw.length}）— ${pw.taskEn}`:"",
+   type==="present"&&own?`私の原稿（参考。読み上げないでください）：\n${own}`:"",
+   (type==="review"||type==="today")&&mis.length?`最近まちがえた文：${mis.join(" / ")}`:"",
+   (type==="review"||type==="today")&&hk.length?`今日のひとこと英語：${hk.join(" / ")}`:"",
+   "",
+   "（「英会話の先生」プロジェクトの外で使うとき：あなたは私の英会話の先生です。私のレベルに合わせた短い英語で、質問は1回に1つ。途中でまちがいは直さず、私が「終わり」と言ったら、よかった点・直した文（最大5つ）・大事な表現3つ・宿題1つを、やさしい日本語でまとめてください。）",
+   type==="present"?"Please listen to my presentation first. When I say \"That's all\", ask me questions one at a time as an Indian business partner, then give feedback.":type==="india"?"Please play an Indian business partner and start a realistic business conversation with me about this week's scene.":"Please start the lesson now with a short, friendly greeting in English."].filter(x=>x!=="").join("\n")}
+function openTeacher(){let type="today";
+  openLesson("先生と話す","",()=>"",body=>{
+    function draw(){const setup=!S.settings.teacherSet;const url=S.settings.teacherUrl||"";
+      body.innerHTML=`<div class="stack"><div class="mascot-side">${pic(IMG_HAVE.has("aki-online")?"aki-online":"aki-talk","","")}<div><div class="eyebrow">English Teacher</div><h2>先生と話す</h2><p class="small muted" style="margin-top:4px">Claude アプリの音声モードで、英会話の先生（Emma 先生）とレッスンします。今日の勉強の内容をコピーして渡すので、それに合わせて話してくれます。</p></div></div>
+       <details class="card" ${setup?"open":""}><summary><b>${setup?"① 最初に1回だけ：Claude に先生を作る":"✓ 先生の準備（やり直すときはここ）"}</b></summary>
+        <ol class="small" style="margin:6px 0;padding-left:20px;line-height:1.9"><li>下の「先生のルールをコピー」を押す</li><li>Claude アプリ（または claude.ai）で「プロジェクト」→「＋新しいプロジェクト」。名前は「英会話の先生」</li><li>プロジェクトの「指示（Instructions）」の欄に貼り付けて保存</li><li>そのプロジェクトのページのアドレス（URL）をコピーして、下の欄に貼る（なくても使えます）</li></ol>
+        <div class="row"><button class="btn accent" id="t-rules">先生のルールをコピー</button></div><textarea id="t-rules-src" readonly hidden>${esc(TEACHER_RULES)}</textarea>
+        <label class="small" for="t-url" style="margin-top:8px;display:block">先生のプロジェクトの URL（あれば）</label><input type="url" id="t-url" placeholder="https://claude.ai/project/…" value="${esc(url)}">
+        <div class="row" style="margin-top:8px"><button class="btn primary" id="t-done">準備できた</button></div></details>
+       <div class="card stack"><b>${setup?"②":"①"} レッスンの種類をえらぶ</b>${TEACH_TYPES.map(x=>`<label class="row small tchoice ${x[0]===type?"on":""}" style="gap:8px"><input type="radio" name="ttype" value="${x[0]}" ${x[0]===type?"checked":""} style="width:18px;height:18px;accent-color:var(--accent)"><span><b>${esc(x[1])}</b><br><span class="muted">${esc(x[2])}</span></span></label>`).join("")}</div>
+       <div class="card stack"><b>${setup?"③":"②"} コピーして、先生に話しかける</b>
+        <ol class="small" style="margin:0;padding-left:20px;line-height:1.9"><li>「レッスンの内容をコピー」を押す</li><li>「先生を開く」→ 先生のプロジェクトで新しいチャットに貼り付けて送る</li><li>右下の<b>音声モード</b>（波の形のボタン）にして、声で話す</li><li>終わるときは「終わり」と言う → まとめを会話ノートに貼ると、カードになります</li></ol>
+        <div class="row"><button class="btn accent" id="t-copy">レッスンの内容をコピー</button><a class="btn" href="${esc(url||"https://claude.ai/new")}" target="_blank" rel="noopener">先生を開く</a></div>
+        <details><summary class="small" style="cursor:pointer">コピーする内容を見る</summary><textarea id="t-src" readonly style="min-height:160px;font-size:13px;margin-top:6px">${esc(teacherPrompt(type))}</textarea></details></div>
+       <div class="card stack"><b>${setup?"④":"③"} 話した時間を記録する</b><p class="small muted">「英語で話した時間」と今日の学習時間に入ります。</p><div class="row">${[10,15,20,30,45].map(m=>`<button class="btn sm" data-tmin="${m}">${m}分</button>`).join("")}</div></div>
+      </div>`;
+      body.querySelector("#t-rules").onclick=()=>copyText(TEACHER_RULES,body.querySelector("#t-rules-src"));
+      body.querySelector("#t-done").onclick=()=>{S.settings.teacherSet=true;S.settings.teacherUrl=body.querySelector("#t-url").value.trim();save();toast("先生の準備ができました");draw()};
+      body.querySelectorAll('[name="ttype"]').forEach(r=>r.onchange=()=>{type=r.value;draw()});
+      body.querySelector("#t-copy").onclick=()=>copyText(teacherPrompt(type),body.querySelector("#t-src"));
+      body.querySelectorAll("[data-tmin]").forEach(b=>b.onclick=()=>{logMinutes(+b.dataset.tmin,"speak");const L=S.log[today()];if(L)L.t.push("teacher");save();toast(b.dataset.tmin+"分を記録しました。おつかれさまでした！")});
+    }
+    draw()})}
+
+/* ============ 1日3時間コース と プレゼン教材（data/present1〜4.js） ============
+   いつものメニュー（約1時間）＋ プレゼン60分 ＋ 耳30分 ＋ 復習とふりかえり30分 */
+const PDAY={1:["教科書を読んで、手本を聞く",[["教科書を読む",20],["表現10を声に出す",20],["手本を聞く",20]]],
+ 2:["表現と手本の練習",[["表現カード",15],["手本のシャドーイング",25],["手本を見ないで言ってみる",20]]],
+ 3:["自分の原稿を書く",[["自分の原稿を書く",40],["AI に直してもらう",20]]],
+ 4:["音読と暗唱",[["原稿を5回音読する",20],["見ないで言う（暗唱）",25],["スライド1枚の要点を書く",15]]],
+ 5:["時間を計って通し練習",[["時間を計って通し練習（3回）",30],["録音を聞いてチェック",20],["直すところを原稿に入れる",10]]],
+ 6:["本番と質疑応答",[["AI の前で本番",30],["質疑応答の練習",20],["言われたことを原稿に入れる",10]]],
+ 7:["ふりかえり",[["表現テスト",15],["手本と自分の原稿の暗唱",25],["チェックリストで自己評価",20]]]};
+function dayIdx(w,d){return (w-1)*7+d}
+function ensureCourse(){if(S.settings.course===undefined){S.settings.course="3h";S.settings.c3from=dayIdx(S.week,S.day);save()}}
+function course3h(w,d){return S.settings.course==="3h"&&S.settings.c3from!=null&&dayIdx(w,d)>=S.settings.c3from}
+// 合計がちょうど3時間になるよう、いつものメニューが短い日は「耳」を長くする
+function planTasks(w,d){if(!course3h(w,d))return DAYS[d].tasks;const base=DAYS[d].tasks.reduce((a,t)=>a+t[1],0);return DAYS[d].tasks.concat([["present",60,d],["listen",Math.max(30,90-base)],["wrap",30]])}
+function PW(n){return (window.PRESENT||[]).find(p=>p.week===n)||null}
+function presentCard(week,i){const pw=PW(week);const p=pw&&pw.phrases[i];if(!p)return null;return{key:`p${week}-${i}`,type:"s",item:{ja:p.ja,en:p.en,note:p.note},week,noteLabel:"プレゼン表現"}}
+function presentLines(pw){return pw.model.lines.map(l=>({s:"A",name:"Akihiro",en:l.en,ja:l.ja}))}
+function myScript(n){return ((S.pscript||{})[n]||"")}
+function scriptLines(txt){return String(txt).replace(/\s+/g," ").trim().split(/(?<=[.!?])\s+(?=[A-Z"'0-9])/).filter(Boolean)}
+function pchecks(pw){return pw.check.map((c,i)=>`<label class="row small" style="gap:8px"><input type="checkbox" data-pchk="${i}" ${((S.pcheck||{})[pw.week]||[]).includes(i)?"checked":""} style="width:20px;height:20px;accent-color:var(--green)"> ${esc(c)}</label>`).join("")}
+function presentChapter(pw,open,noHead){return `
+ ${noHead?`<div class="card"><p class="pskill">🎯 ${esc(pw.skill)}</p></div>`:`<div class="card stack pchap"><div class="eyebrow">Week ${pw.week}・${esc(pw.length)}・${esc(pw.level)}</div><h2>${esc(pw.title)}</h2><p class="pskill">🎯 ${esc(pw.skill)}</p></div>`}
+ <div class="card stack"><h3>📖 教科書</h3>${pw.lesson.map(p=>`<p>${esc(p)}</p>`).join("")}</div>
+ <div class="card stack"><h3>🧩 今週の型</h3><div class="pstruct">${pw.structure.map((s,i)=>`<div><span class="n">${i+1}</span><span><b class="en">${esc(s.en)}</b><small>${esc(s.ja)}</small></span></div>`).join("")}</div></div>
+ <div class="card"><h3>💬 使える表現10</h3>${pw.phrases.map(p=>`<div class="exline">${spkBtn(p.en,"andrew")}<div class="t"><span class="en">${esc(p.en)}</span><span class="small">${esc(p.ja)}</span>${p.note?`<span class="exnote">💡 ${esc(p.note)}</span>`:""}</div></div>`).join("")}</div>
+ <details class="card" ${open?"open":""}><summary><b>🎤 手本「${esc(pw.model.title)}」（${esc(pw.model.time)}）</b></summary>${pw.model.note?`<p class="small muted">${esc(pw.model.note)}</p>`:""}${pw.model.lines.map(l=>`<div class="exline">${spkBtn(l.en,"andrew")}<div class="t"><span class="en">${esc(l.en)}</span><span class="small muted">${esc(l.ja)}</span></div></div>`).join("")}</details>
+ <div class="card stack"><h3>✍️ あなたの課題</h3><p>${esc(pw.task)}</p><p class="small muted">🖼 スライドのヒント：${esc(pw.slide)}</p></div>
+ ${(pw.qa||[]).length?`<details class="card"><summary><b>❓ 想定される質問（${pw.qa.length}）</b></summary>${pw.qa.map(q=>`<div class="exline">${spkBtn(q.q,"prabhat")}<div class="t"><span class="en"><b>Q.</b> ${esc(q.q)}</span><span class="en"><b>A.</b> ${esc(q.a)}</span><span class="small muted">${esc(q.ja)}</span></div></div>`).join("")}</details>`:""}
+ <div class="card stack"><h3>✅ チェックリスト</h3>${pw.check.map(c=>`<div class="small">□ ${esc(c)}</div>`).join("")}</div>`}
+function lessonPresent(pw,step,done){step=+step||1;
+  const back=()=>{closeLesson();setTimeout(()=>lessonPresent(pw,step,done),60)};
+  const shadowModel=()=>lessonShadow({week:pw.week,scene:"プレゼン W"+pw.week+"・"+pw.length,dialogue:{title:pw.model.title,lines:presentLines(pw)}},step<=1?"listen":"shadow",back);
+  const phraseCards=()=>lessonCards(pw.phrases.map((_,i)=>presentCard(pw.week,i)),"プレゼン表現",()=>{save();back()});
+  openLesson("プレゼン練習",`W${pw.week}`,"",body=>{
+    const [name,plan]=PDAY[step];const own=myScript(pw.week);
+    let h=`<div class="stack"><div class="mascot-side">${pic("aki-talk","","")}<div><div class="eyebrow">Week ${pw.week}・${esc(pw.length)}・${esc(pw.level)}</div><h2>${esc(pw.title)}</h2></div></div>
+     <div class="steps">${[1,2,3,4,5,6,7].map(k=>`<button data-pst="${k}" class="${k===step?"on":""}">${k}日目</button>`).join("")}</div>
+     <div class="card stack"><b>${step}日目：${esc(name)}（60分）</b>${plan.map((x,i)=>`<div class="small">${i+1}. ${esc(x[0])}　<span class="mono muted">${x[1]}分</span></div>`).join("")}</div>`;
+    if(step===1)h+=presentChapter(pw,true,true)+`<div class="row"><button class="btn accent" id="p-shadow">手本を通して聞く</button></div>`;
+    if(step===2)h+=`<div class="card stack"><h3>① 表現カード</h3><p class="small muted">日本語を見て、英語の表現を言えるか試します。</p><div><button class="btn accent" id="p-cards">表現カードを始める</button></div></div>
+      <div class="card stack"><h3>② 手本のシャドーイング</h3><p class="small muted">「③重ねて読む」→「④シャドーイング」の順で。止めても続きから再生できます。</p><div><button class="btn accent" id="p-shadow">手本をシャドーイング</button></div></div>
+      <div class="card stack"><h3>③ 見ないで言ってみる</h3><p class="small muted">手本を1行ずつ見て → 目をはなして言う。全部でなくて大丈夫。最初の3行だけでも言えたら合格です。</p></div>
+      <details class="card"><summary><b>手本の原稿を見る</b></summary>${pw.model.lines.map(l=>`<div class="exline">${spkBtn(l.en,"andrew")}<div class="t"><span class="en">${esc(l.en)}</span><span class="small muted">${esc(l.ja)}</span></div></div>`).join("")}</details>`;
+    if(step===3)h+=`<div class="card stack"><h3>課題</h3><p>${esc(pw.task)}</p><div class="small"><b>型：</b>${pw.structure.map(s=>esc(s.en)+"（"+esc(s.ja)+"）").join(" → ")}</div><p class="small muted">手本と使える表現をまねして大丈夫です。書けないところは日本語のままでも OK。AI が英語にしてくれます。</p></div>
+      <div class="card stack"><label for="p-script"><b>自分の原稿（英語）</b></label><textarea id="p-script" style="min-height:220px" placeholder="Good morning, everyone. My name is Akihiro Iwata. ...">${esc(own)}</textarea><div class="small muted mono" id="p-wc"></div></div>
+      <div class="row"><button class="btn accent" id="p-ai">AI に直してもらう</button></div><div id="p-aiout"></div>
+      <p class="note">AI が直した原稿は、よければ上の欄に貼り付けて「自分の原稿」にしましょう（自動で保存されます）。</p>`;
+    if(step===4||step===5){const lines=own?scriptLines(own):pw.model.lines.map(l=>l.en);
+      h+=`<div class="card stack"><div class="spread"><h3>${own?"自分の原稿":"手本（自分の原稿がまだないので手本で練習）"}</h3><button class="btn sm ghost" id="p-hide">英文を隠す／見せる</button></div>
+       <div id="p-lines">${lines.map(l=>`<div class="exline">${spkBtn(l,"andrew")}<div class="t"><span class="en">${esc(l)}</span></div></div>`).join("")}</div>
+       ${own?`<div><button class="btn sm" id="p-myshadow">自分の原稿をシャドーイング画面で</button></div>`:""}</div>`;
+      if(step===4)h+=`<div class="card stack"><h3>スライド1枚の要点</h3><p class="small muted">${esc(pw.slide)}</p><textarea id="p-slide" style="min-height:90px" placeholder="スライドに書く言葉（3〜5語×3行くらい）">${esc(((S.pslide||{})[pw.week])||"")}</textarea></div>`;
+      if(step===5)h+=`<div class="card stack" style="align-items:center;text-align:center"><div class="eyebrow">目標 ${esc(pw.length)}</div><div class="mono" id="p-clock" style="font-size:48px;font-weight:600">0:00</div>
+        <div class="row" style="justify-content:center"><button class="btn primary" id="p-go">▶ 計る</button><button class="btn" id="p-reset">リセット</button></div>
+        <p class="small muted">iPhone の「ボイスメモ」で録音しながら話し、あとで聞き直しましょう。</p><div class="small" id="p-laps"></div></div>
+        <div class="card stack"><h3>聞き直してチェック</h3>${pchecks(pw)}</div>`}
+    if(step===6)h+=`<div class="card stack"><h3>① AI の前で本番（Claude アプリの音声モード）</h3><p class="small muted">Claude がインドの取引先の役で聞き、終わったら質問をして、最後に日本語でフィードバックをくれます。</p><div id="p-bridge"></div></div>
+      ${(pw.qa||[]).length?`<div class="card"><div class="spread"><h3>② 質疑応答の練習</h3><button class="btn sm ghost" id="p-qhide">答えを隠す／見せる</button></div>${pw.qa.map(q=>`<div class="exline">${spkBtn(q.q,"prabhat")}<div class="t"><span class="en"><b>Q.</b> ${esc(q.q)}</span><span class="en pans"><b>A.</b> ${esc(q.a)}</span><span class="small muted">${esc(q.ja)}</span></div></div>`).join("")}<p class="small muted">質問を聞いて、答えを隠したまま自分のことばで答えてみましょう。</p></div>`:""}`;
+    if(step===7)h+=`<div class="card stack"><h3>① 表現テスト</h3><p class="small muted">今週の表現10を、日本語から英語で言えるか確かめます。</p><div><button class="btn accent" id="p-cards">表現テストを始める</button></div></div>
+      <div class="card stack"><h3>② 暗唱</h3><p class="small muted">手本と自分の原稿を、見ないで通して言ってみます。</p><div class="row"><button class="btn" id="p-shadow">手本をもう一度</button>${own?`<button class="btn" id="p-myshadow">自分の原稿</button>`:""}</div></div>
+      <div class="card stack"><h3>③ 自己評価</h3>${pchecks(pw)}</div>`;
+    h+=finishBtn(step+"日目のプレゼン練習・完了")+"</div>";
+    body.innerHTML=h;bindFinish(body,done);
+    body.querySelectorAll("[data-pst]").forEach(b=>b.onclick=()=>{stopSpeak();step=+b.dataset.pst;closeLesson();setTimeout(()=>lessonPresent(pw,step,done),40)});
+    const q=s=>body.querySelector(s);
+    if(q("#p-shadow"))q("#p-shadow").onclick=shadowModel;
+    if(q("#p-cards"))q("#p-cards").onclick=phraseCards;
+    if(q("#p-myshadow"))q("#p-myshadow").onclick=()=>lessonShadow({week:pw.week,scene:"自分の原稿",dialogue:{title:pw.title,lines:scriptLines(myScript(pw.week)).map(en=>({s:"A",name:"Akihiro",en,ja:""}))}},"read",back);
+    const ta=q("#p-script");if(ta){const wc=()=>{const n=ta.value.trim()?ta.value.trim().split(/\s+/).length:0;q("#p-wc").textContent=n+"語（1分でだいたい110〜130語）"};wc();
+      ta.oninput=()=>{if(!S.pscript)S.pscript={};S.pscript[pw.week]=ta.value;wc();clearTimeout(ta._t);ta._t=setTimeout(save,600)}}
+    if(q("#p-ai"))q("#p-ai").onclick=()=>{const mine=(q("#p-script").value||"").trim();if(!mine){toast("先に原稿を書いてください（日本語まじりでもOK）");return}
+      askAI(`あなたはビジネス英語のプレゼンを教える講師です。学習者は日本人の鍼灸師・柔道整復師の岩田章弘さん（愛媛県大洲市で院を経営）で、英語のレベルは CEFR ${pw.level} です。\n今週の課題：${pw.task}\n今週の型：${pw.structure.map(s=>s.en).join(" → ")}\n目標の長さ：${pw.length}\n\n岩田さんの原稿（日本語がまざっていたら英語にしてください）：\n${mine}\n\n次の順で、やさしい日本語で答えてください。\n1) よいところ（2行）\n2) 直した原稿の全文（話し言葉の自然な英語。${pw.level} のレベルで、1文は短く。型の順にする）\n3) 直した理由（大事なものを最大5つ、1行ずつ）\n4) 本番でゆっくり言うとよい文を1つ`,q("#p-aiout"),{title:"Claude に原稿を直してもらう"})};
+    if(q("#p-hide"))q("#p-hide").onclick=()=>q("#p-lines").querySelectorAll(".en").forEach(e=>e.classList.toggle("blur"));
+    if(q("#p-qhide"))q("#p-qhide").onclick=()=>body.querySelectorAll(".pans").forEach(e=>e.classList.toggle("blur"));
+    const sl=q("#p-slide");if(sl)sl.oninput=()=>{if(!S.pslide)S.pslide={};S.pslide[pw.week]=sl.value;clearTimeout(sl._t);sl._t=setTimeout(save,600)};
+    body.querySelectorAll("[data-pchk]").forEach(c=>c.onchange=()=>{if(!S.pcheck)S.pcheck={};const a=new Set(S.pcheck[pw.week]||[]);c.checked?a.add(+c.dataset.pchk):a.delete(+c.dataset.pchk);S.pcheck[pw.week]=[...a];save()});
+    if(q("#p-go")){let t0=null,acc=0,tm=null;const fmt=s=>Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");const laps=[];
+      const tick=()=>{q("#p-clock").textContent=fmt((acc+(t0?Date.now()-t0:0))/1000)};
+      q("#p-go").onclick=()=>{if(t0){acc+=Date.now()-t0;t0=null;clearInterval(tm);q("#p-go").textContent="▶ 続きから";laps.push(fmt(acc/1000));q("#p-laps").textContent="記録："+laps.join("・")}else{t0=Date.now();tm=setInterval(tick,250);q("#p-go").textContent="❚❚ 止める"}};
+      q("#p-reset").onclick=()=>{clearInterval(tm);t0=null;acc=0;q("#p-go").textContent="▶ 計る";tick()};onClose=()=>clearInterval(tm)}
+    const br=q("#p-bridge");if(br){const own2=myScript(pw.week);claudeBridge(br,`Let's practice a business presentation in English by voice. You are a small group of business people from India (for example, a hotel manager and a clinic owner) listening to my presentation. I am Akihiro Iwata, a Japanese acupuncturist and judo therapist who runs a clinic in Ozu, Ehime, and I am learning English at CEFR ${pw.level} level.
+Topic: ${pw.taskEn}
+Target length: ${pw.length}.
+${own2?"My script (for your reference only — do not read it out):\n"+own2+"\n":""}
+1) First say "Please start when you're ready." and then just listen. Do not interrupt.
+2) When I say "That's all" or "終わり", ask me ${Math.max(2,(pw.qa||[]).length)} realistic questions, one at a time, in clear simple English. Wait for my answer each time.
+3) After the last answer, give feedback in simple Japanese: good points (2 lines), up to 5 sentences I said rewritten as natural English with a short reason, and one thing to practice next time.`,{title:"Claude アプリで本番の練習",noPaste:true})}
+  })}
+function bookRow(){if(!(window.PRESENT||[]).length)return"";const pw=PW(S.week);
+  return `<button class="introbtn" data-act="book"><span class="seal">🎤</span><span><b>プレゼン教科書（52週）</b><small class="muted" style="display:block;font-size:12.5px">${pw?`今週：${esc(pw.title)}（${esc(pw.length)}）`:"1年でビジネスプレゼンができるまでの教科書"}</small></span><span class="min mono small muted">→</span></button>`}
+function openPresentBook(sel){let cur=sel||null;
+  openLesson("プレゼン教科書","52週","",body=>{
+    const top=()=>{const L=$("#lesson");if(L)L.scrollTop=0};
+    function draw(){
+      if(cur){const pw=PW(cur);body.innerHTML=`<div class="stack"><div class="row"><button class="btn sm ghost" id="b-list">← 目次</button>${PW(cur-1)?`<button class="btn sm ghost" id="b-prev">← W${cur-1}</button>`:""}${PW(cur+1)?`<button class="btn sm ghost" id="b-next">W${cur+1} →</button>`:""}</div>${presentChapter(pw,false)}
+        <div class="card stack"><b>この週を練習する</b><div class="row">${[1,2,3,4,5,6,7].map(k=>`<button class="btn sm" data-bpst="${k}">${k}日目 ${esc(PDAY[k][0])}</button>`).join("")}</div><p class="small muted">ここから開いた練習は、今日のメニューの記録には付きません（今日のメニューから開くと記録されます）。</p></div></div>`;
+        body.querySelector("#b-list").onclick=()=>{cur=null;draw();top()};
+        const pv=body.querySelector("#b-prev");if(pv)pv.onclick=()=>{cur--;draw();top()};
+        const nx=body.querySelector("#b-next");if(nx)nx.onclick=()=>{cur++;draw();top()};
+        body.querySelectorAll("[data-bpst]").forEach(b=>b.onclick=()=>{const k=+b.dataset.bpst,w0=cur;closeLesson();setTimeout(()=>lessonPresent(pw,k,()=>{closeLesson();setTimeout(()=>openPresentBook(w0),60)}),60)});return}
+      const P=window.PRESENT||[];
+      body.innerHTML=`<div class="stack"><div class="mascot-side">${pic("aki-talk","","")}<div><div class="eyebrow">Business Presentation in 1 Year</div><h2>プレゼン教科書</h2><p class="small muted" style="margin-top:4px">30秒のあいさつから始めて、1年後に10分の提携プレゼンと質疑応答ができるようになるための52週です。</p></div></div>
+       <div class="card stack"><h3>1日3時間の時間割</h3>
+        <div class="small">🧱 <b>30〜60分</b> 基礎（いつものメニュー：文法・単語・瞬間英作文・シャドーイング・話す練習）</div>
+        <div class="small">🎤 <b>60分</b> プレゼン（この教科書。1日目〜7日目で中身が変わる）</div>
+        <div class="small">📻 <b>30〜60分</b> 耳（英語のプレゼン・ビジネス動画を聞く。いつものメニューが短い日は長め）</div>
+        <div class="small">🌙 <b>30分</b> 復習とふりかえり（復習カード・ひとこと英語・ふりかえりテスト）</div>
+        <details><summary class="small" style="cursor:pointer">プレゼン60分の1週間の流れ</summary><div class="stack" style="margin-top:6px">${[1,2,3,4,5,6,7].map(k=>`<div class="small"><b>${k}日目 ${esc(PDAY[k][0])}</b>：${PDAY[k][1].map(x=>esc(x[0])+" "+x[1]+"分").join("・")}</div>`).join("")}</div></details></div>
+       ${PHASES.map(ph=>{const ws=P.filter(p=>p.week>=ph.weeks[0]&&p.week<=ph.weeks[1]);return `<h3>第${ph.n}期（${esc(ph.months)}）${esc(["","30秒〜1分","2〜3分","3〜5分","5〜10分"][ph.n])}のプレゼン</h3>
+        <div class="card hklist">${ws.map(p=>`<button class="bookrow" data-bw="${p.week}"><span class="mono small ${p.week===S.week?"now":""}">W${p.week}</span><span><b>${esc(p.title)}</b><small class="muted">${esc(p.length)}・${esc(p.level)}${myScript(p.week)?"・✍️ 原稿あり":""}</small></span><span class="muted">→</span></button>`).join("")||`<p class="small muted">準備中</p>`}</div>`}).join("")}</div>`;
+      body.querySelectorAll("[data-bw]").forEach(b=>b.onclick=()=>{cur=+b.dataset.bw;draw();top()});
+    }
+    draw()})}
+function lessonListen(done,min){const pw=PW(S.week);min=min||30;
+  openLesson("耳：英語のプレゼンを聞く",min+"分",`<div class="stack">${pic("aki-listen","empty-img","")}
+   ${pw?`<div class="card stack"><h3>① 今週の手本を聞く（5分）</h3><p class="small muted">${esc(pw.model.title)}（${esc(pw.model.time)}）。2回、目を閉じて聞きます。</p><div><button class="btn sm" id="l-model">▶ 手本を聞く</button></div></div>`:""}
+   <div class="card stack"><h3>② 本物のプレゼンを聞く（${min-10}分）</h3>
+    <p class="small">英語のプレゼン・スピーチの動画を1本えらび、<b>1回目は字幕なし</b>で全体をつかみ、<b>2回目は英語の字幕つき</b>で聞きます。</p>
+    <p class="small"><a href="https://www.ted.com/talks" target="_blank" rel="noopener">TED Talks</a>（英語字幕あり。短い話からさがす） ／ <a href="https://www.bbc.co.uk/learningenglish/" target="_blank" rel="noopener">BBC Learning English</a> ／ <a href="https://learningenglish.voanews.com/" target="_blank" rel="noopener">VOA Learning English</a></p>
+    <p class="small muted">第1期は VOA・BBC のやさしい音声から。第3期からは TED やインドの企業のプレゼン動画もおすすめです。</p></div>
+   <div class="card stack"><h3>③ 気に入った1文をまねする（5分）</h3><p class="small muted">「つかみ」「つなぎ」「締め」で使えそうな1文をメモし、話し手のまねをして5回言います。会話ノートに書いておくとカードになります。</p></div>
+   ${finishBtn(min+"分聞いた・完了")}</div>`,
+   body=>{bindFinish(body,done);const b=body.querySelector("#l-model");if(b)b.onclick=async()=>{stopSpeak();const tk=++speakToken;for(const l of pw.model.lines){if(tk!==speakToken)return;await speak(l.en,null,"andrew");await sleep(400)}}})}
+function lessonWrap(done){const due=dueKeys().length,res=(S.dayTest||{})[today()];
+  const again=()=>{closeLesson();setTimeout(()=>lessonWrap(done),60)};
+  openLesson("復習とふりかえり","30分",`<div class="stack">${pic(IMG_HAVE.has("aki-night")?"aki-night":"aki-check","empty-img","")}
+   <p>1日の最後の30分です。上から順にやりましょう。終わったら、いちばん下の「完了」を押します。</p>
+   <div class="card stack"><h3>① 復習カード（10分）</h3><p class="small muted">復習の時期が来たカード ${due}枚</p><div><button class="btn accent" id="w-rev">復習カード</button></div></div>
+   <div class="card stack"><h3>② ひとこと英語（10分）</h3><div><button class="btn accent" id="w-hk">ひとこと英語</button></div></div>
+   <div class="card stack"><h3>③ 1日のふりかえりテスト（10分）</h3><p class="small muted">${res?"今日は "+res.p+"点でした。もう一度やってもOK":"今日練習したものから出題します"}</p><div><button class="btn accent" id="w-check">ふりかえりテスト</button></div></div>
+   ${finishBtn("30分やった・完了")}</div>`,
+   body=>{bindFinish(body,done);
+    body.querySelector("#w-rev").onclick=()=>{closeLesson();setTimeout(()=>lessonReview(()=>{save();again()}),60)};
+    body.querySelector("#w-hk").onclick=()=>{closeLesson();setTimeout(()=>openHitokoto("today"),60)};
+    body.querySelector("#w-check").onclick=()=>{closeLesson();setTimeout(()=>lessonDayCheck(),60)}})}
+
 /* ============ 1日のふりかえりテスト（その日に練習したカードだけで5分） ============ */
 function studiedToday(){return (S.studied||{})[today()]||{}}
 function dayCheckRow(allDone){const keys=Object.keys(studiedToday()).filter(k=>cardFromKey(k));const res=(S.dayTest||{})[today()];
@@ -1767,7 +1972,7 @@ async function syncJoin(code){code=normCode(code);if(code.replace(/-/g,"").lengt
 document.addEventListener("click",e=>{
   const s=e.target.closest("[data-say]");if(s){e.stopPropagation();stopSpeak();speak(s.dataset.say,null,s.dataset.voice);return}
   const tb=e.target.closest(".nav [data-tab]");if(tb){TAB=tb.dataset.tab;render();window.scrollTo(0,0);return}
-  const tk=e.target.closest("#app [data-task]");if(tk){const i=+tk.dataset.task;const vw=viewWD();TASK_AT={week:vw.week,day:vw.day};runTask(DAYS[vw.day].tasks[i],W(vw.week),i);return}
+  const tk=e.target.closest("#app [data-task]");if(tk){const i=+tk.dataset.task;const vw=viewWD();TASK_AT={week:vw.week,day:vw.day};runTask(planTasks(vw.week,vw.day)[i],W(vw.week),i);return}
   const vd=e.target.closest("#app [data-vday]");if(vd){const d=+vd.dataset.vday;const vw=viewWD();VIEW=(vw.week===S.week&&d===S.day)?null:{week:vw.week,day:d};render();return}
   const gw=e.target.closest("[data-gweek]");if(gw){openWeekReview(+gw.dataset.gweek);return}
   const pe=e.target.closest("#app [data-person]");if(pe){openPerson(pe.dataset.person);return}
@@ -1786,6 +1991,8 @@ document.addEventListener("click",e=>{
   else if(act==="intro"){openIntro(0)}
   else if(act==="hk"){openHitokoto("today")}
   else if(act==="daycheck"){lessonDayCheck()}
+  else if(act==="book"){openPresentBook()}
+  else if(act==="teacher"){openTeacher()}
   else if(act==="quicklog"){openQuickLog("")}
   else if(act==="notereview"){lessonCards(dueNoteKeys().slice(0,30).map(cardFromKey).filter(Boolean),"ノートの復習",()=>{logMinutes(10,"note");save();closeLesson()},true)}
   else if(act==="backup"||act==="backupcopy"){const data=JSON.stringify({app:"eigo52",v:1,savedAt:new Date().toISOString(),state:S,notes:NOTES});
@@ -1806,6 +2013,7 @@ function restoreBackup(txt){const d=parseJSONLoose(txt);if(!d||d.app!=="eigo52"|
 document.addEventListener("change",e=>{
   if(e.target.id==="bk-file"&&e.target.files[0]){const r=new FileReader();r.onload=()=>restoreBackup(String(r.result||""));r.readAsText(e.target.files[0])}
   if(e.target.id==="set-accent"){S.settings.accent=e.target.value;S.settings.voiceName="";S.settings.voiceURI="";save();render();speak("This is how I sound.")}
+  if(e.target.id==="set-course"){S.settings.course=e.target.checked?"3h":"1h";if(e.target.checked)S.settings.c3from=dayIdx(S.week,S.day);save();toast(e.target.checked?"1日3時間コースにしました":"1日1時間コースにしました");return}
   if(e.target.id==="set-natural"){S.settings.natural=e.target.checked;save();speak("Hi, I'm Ava. Nice to meet you. Let's practice English together.")}
   if(e.target.id==="set-voice"){const [nm,uri]=e.target.value.split("|");S.settings.voiceName=nm||"";S.settings.voiceURI=uri||"";save();render();speak("Hello, I'm Akihiro. Nice to meet you.")}
   if(e.target.id==="set-rate"){S.settings.rate=+e.target.value;save()}
