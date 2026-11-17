@@ -480,6 +480,18 @@ details.card[open] summary{margin-bottom:8px}
 .ctype{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center}.ctype span{border:2px solid var(--c);color:var(--c);border-radius:20px;padding:3px 10px;font-weight:800;font-size:13px;background:#fff}.ctype i{color:var(--muted);font-style:normal}
 .cline{border-left:4px solid var(--c);padding-left:10px}.cline .lab{font-size:12px;font-weight:800;color:var(--c)}
 .cjudge{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.cjudge span{font-size:12.5px;font-weight:700;border-radius:12px;padding:2px 9px}.cjudge .ok{background:#E4F8EF;color:#0E7A57}.cjudge .ng{background:#FFF0E8;color:#B24A1C}
+.gone{background:linear-gradient(135deg,#EAF2FF,#FFF6DD)}.gone-t{font-family:var(--f-head);font-size:19px;font-weight:800;line-height:1.6}
+.gpart{border-top:1px dashed var(--line);padding-top:10px}.gpart:first-of-type{border-top:none;padding-top:0}
+.gchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.gchip{display:flex;flex-direction:column;align-items:center;border:2px solid var(--c);border-radius:12px;padding:4px 8px;background:#fff;min-width:56px}
+.gchip b{font-size:16px;color:var(--c)}.gchip i{font-style:normal;font-size:10.5px;font-weight:800;color:#fff;background:var(--c);border-radius:8px;padding:0 6px;margin:2px 0}.gchip small{font-size:11.5px;color:var(--muted)}
+.gq{border-top:1px dashed var(--line);padding-top:8px}.gq:first-of-type{border-top:none;padding-top:0}.gq-ok{color:#0E7A57}.gq-ng{color:#B24A1C}
+.term{display:inline;border:none;background:linear-gradient(transparent 60%,#FFE27A 60%);color:inherit;font:inherit;padding:0 1px;cursor:pointer;text-decoration:underline dotted #9A6B00;text-underline-offset:3px}
+.term.big{display:inline-block;background:var(--yellow-soft);border-radius:14px;padding:6px 12px;font-weight:700;text-decoration:none;margin:0}
+.tp-grid{display:flex;flex-wrap:wrap;gap:8px}
+#termpop{position:fixed;inset:0;background:rgba(20,26,48,.35);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:16px}
+.tp-card{background:#fff;border-radius:20px;padding:16px 18px;max-width:560px;width:100%;display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 40px rgba(0,0,0,.2);max-height:80vh;overflow:auto;margin-bottom:env(safe-area-inset-bottom)}
+.tp-t{font-family:var(--f-head);font-size:18px}.tp-easy{font-weight:700;font-size:16px}
 </style>
 </head>
 <body>
@@ -506,6 +518,11 @@ details.card[open] summary{margin-bottom:8px}
 <script src="data/phase2.js"></script>
 <script src="data/phase3.js"></script>
 <script src="data/phase4.js"></script>
+<script src="data/glossary.js"></script>
+<script src="data/geasy1.js"></script>
+<script src="data/geasy2.js"></script>
+<script src="data/geasy3.js"></script>
+<script src="data/geasy4.js"></script>
 <script src="data/hitokoto.js"></script>
 <script src="data/catch.js"></script>
 <script src="data/present1.js"></script>
@@ -996,17 +1013,57 @@ function runTask(t,w,ti){
    sentences:()=>lessonSentences(w,arg,done),shadow:()=>lessonShadow(w,arg,done),review:()=>lessonReview(done),writing:()=>lessonWriting(w,done),
    test:()=>lessonTest(w,done),roleplay:()=>lessonRoleplay(w,done),input:()=>lessonInput(done),speak:()=>lessonSpeak(w,done)})[type]()}
 
-/* --- 文法 --- */
-function lessonGrammar(w,done){const g=w.grammar;
-  openLesson("文法ミニ講義",`W${w.week}`,`<div class="stack"><div class="mascot-side">${pic("aki-study","","")}<div><div class="eyebrow">今週の文法</div><h2>${esc(g.title)}</h2></div></div>
-   ${g.formula?`<div class="card stack"><div class="eyebrow">形（これだけ覚える）</div><pre class="formula">${esc(g.formula)}</pre></div>`:""}
-   <div class="card stack"><h3>ポイント</h3>${g.points.map((p,i)=>`<div class="point"><span class="n">${i+1}</span><p>${esc(p)}</p></div>`).join("")}</div>
-   <div class="card"><div class="spread" style="margin-bottom:4px"><h3>例文と解説</h3><button class="btn sm" id="playall">全部聞く</button></div>
-   ${g.examples.map(e=>`<div class="exline">${spkBtn(e.en)}<div class="t"><span class="en">${esc(e.en)}</span><span class="small">${esc(e.ja)}</span>${e.note?`<span class="exnote">💡 ${esc(e.note)}</span>`:""}</div></div>`).join("")}</div>
-   ${(g.mistakes||[]).length?`<div class="card stack"><h3>よくある間違い</h3>${g.mistakes.map(m=>`<div class="mistake"><div class="ng"><i>✕</i><span class="en">${esc(m.ng)}</span></div><div class="okk"><i>○</i><span class="en">${esc(m.ok)}</span>${spkBtn(m.ok)}</div><p class="small">${esc(m.why)}</p></div>`).join("")}</div>`:""}
-   ${g.tip?`<div class="tip"><b>コツ</b>　${esc(g.tip)}</div>`:""}
-   <p class="note">例文は1文ずつ聞いて、まねして3回声に出しましょう。</p>${finishBtn("理解できた・完了")}</div>`,
-   body=>{bindFinish(body,done);body.querySelector("#playall").onclick=async()=>{const tk=++speakToken;for(const e of g.examples){if(tk!==speakToken)break;await speak(e.en);await sleep(900)}}})}
+/* --- 文法（やさしい解説 → くわしい解説）。やさしい解説は data/geasy1〜4.js、用語集は data/glossary.js --- */
+const ROLE_COLOR={"だれが／なにが":"#3D7BFF","どうする":"#F0473F","です・いる（be動詞）":"#F0473F","だれを／なにを":"#13A37A","だれに":"#13A37A","どんな":"#8B5CF6","くわしく（説明の部分）":"#8B5CF6","どこで／どこに":"#E08A00","いつ":"#E08A00","どのように":"#E08A00","なぜ":"#E08A00","どのくらい":"#E08A00","つなぎ":"#7A8099","気持ち・助け（助動詞）":"#D9468F","たずねる（疑問詞）":"#0096B4"};
+const GLO=()=>window.GLOSSARY||{};
+// 文の中の文法用語を、タップで説明が出るボタンにする（同じ用語は最初の1回だけ）
+function linkTerms(text,seen){const keys=Object.keys(GLO()).sort((a,b)=>b.length-a.length);if(!keys.length)return esc(text);seen=seen||new Set();
+  const re=new RegExp(keys.map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|"),"g");
+  return esc(text).replace(re,m=>{if(seen.has(m))return m;seen.add(m);return `<button class="term" data-term="${m}">${m}</button>`})}
+function showTerm(t){const g=GLO()[t];if(!g)return;const old=$("#termpop");if(old)old.remove();
+  const d=document.createElement("div");d.id="termpop";d.innerHTML=`<div class="tp-card" role="dialog" aria-label="${esc(t)}"><div class="spread"><b class="tp-t">📚 ${esc(t)}</b><button class="btn sm ghost" data-tpclose>閉じる</button></div>
+   <p class="tp-easy">${esc(g.easy)}</p>${g.more?`<p class="small">${esc(g.more)}</p>`:""}${g.ex?`<div class="exline">${spkBtn(g.ex.en)}<div class="t"><span class="en">${esc(g.ex.en)}</span><span class="small muted">${esc(g.ex.ja)}</span></div></div>`:""}
+   <button class="btn sm" data-tpall style="align-self:flex-start">用語集をすべて見る</button></div>`;
+  d.onclick=e=>{if(e.target===d||e.target.closest("[data-tpclose]"))d.remove();if(e.target.closest("[data-tpall]")){d.remove();openGlossary()}};document.body.appendChild(d)}
+function openGlossary(){const keys=Object.keys(GLO());
+  const wrap=document.createElement("div");wrap.id="termpop";wrap.innerHTML=`<div class="tp-card tp-list"><div class="spread"><b class="tp-t">📚 文法の用語集（${keys.length}）</b><button class="btn sm ghost" data-tpclose>閉じる</button></div><p class="small muted">タップすると説明が出ます。</p>
+   <div class="tp-grid">${keys.map(k=>`<button class="term big" data-term="${k}">${k}</button>`).join("")}</div></div>`;
+  wrap.onclick=e=>{if(e.target===wrap||e.target.closest("[data-tpclose]"))wrap.remove()};const old=$("#termpop");if(old)old.remove();document.body.appendChild(wrap)}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-term]");if(b){e.preventDefault();e.stopPropagation();showTerm(b.dataset.term)}},true);
+function partsHTML(p){return `<div class="gpart"><div class="gchips">${p.chunks.map(c=>`<span class="gchip" style="--c:${ROLE_COLOR[c.r]||"#7A8099"}"><b class="en">${esc(c.t)}</b><i>${esc(c.r)}</i><small>${esc(c.ja)}</small></span>`).join("")}</div>
+  <div class="exline">${spkBtn(p.en)}<div class="t"><span class="en">${esc(p.en)}</span><span class="small muted">${esc(p.ja)}</span>${p.point?`<span class="exnote">💡 ${linkTerms(p.point)}</span>`:""}</div></div></div>`}
+function lessonGrammar(w,done){const g=w.grammar,E=(window.GEASY||{})[w.week];let tab=E?"easy":"full";const ans={};
+  openLesson("文法ミニ講義",`W${w.week}`,"",body=>{
+    function draw(){const seen=new Set();
+      const head=`<div class="mascot-side">${pic("aki-study","","")}<div><div class="eyebrow">今週の文法</div><h2>${esc(g.title)}</h2></div></div>
+       ${E?`<div class="tabs"><button data-gtab="easy" class="${tab==="easy"?"on":""}">① やさしい解説</button><button data-gtab="full" class="${tab==="full"?"on":""}">② くわしい解説</button></div>`:""}`;
+      let h="";
+      if(tab==="easy"&&E){
+        h=`<div class="card gone"><div class="eyebrow">ひとことで言うと</div><p class="gone-t">${linkTerms(E.one,seen)}</p></div>
+         <div class="card stack"><h3>🖼 イメージ</h3><p>${linkTerms(E.image,seen)}</p></div>
+         <div class="card stack"><h3>🇯🇵 日本語とのちがい</h3><p>${linkTerms(E.ja,seen)}</p></div>
+         <div class="card stack"><h3>📍 どんなときに使う？</h3>${E.when.map(x=>`<div class="small">・${linkTerms(x,seen)}</div>`).join("")}</div>
+         <div class="card stack"><h3>🔧 文の作り方</h3>${E.steps.map((s,i)=>`<div class="point"><span class="n">${i+1}</span><p>${linkTerms(s.replace(/^[①②③④⑤]\s*/,""),seen)}</p></div>`).join("")}</div>
+         <div class="card stack"><h3>🧩 文を分解してみよう</h3><p class="small muted">色ごとに「文の中での役わり」です。英語は <b style="color:#3D7BFF">だれが</b> → <b style="color:#F0473F">どうする</b> → <b style="color:#13A37A">なにを</b> → <b style="color:#E08A00">どこで・いつ</b> の順に並ぶのが基本です。</p>${E.parts.map(partsHTML).join("")}</div>
+         <div class="card stack"><h3>✅ 理解チェック</h3>${E.quiz.map((q,k)=>{const a=ans[k];return `<div class="gq"><p><b>Q${k+1}.</b> <span class="en">${esc(q.q)}</span></p><div class="opts en">${q.opts.map((o,j)=>`<button class="opt ${a!=null?(j===q.a?"ok":a===j?"ng":""):""}" data-gq="${k}" data-go="${j}">${esc(o)}</button>`).join("")}</div>${a!=null?`<p class="small ${a===q.a?"gq-ok":"gq-ng"}">${a===q.a?"⭕ 正解！":"❌ 正解は「"+esc(q.opts[q.a])+"」"}　${linkTerms(q.why,seen)}</p>`:""}</div>`}).join("")}</div>
+         ${(E.terms||[]).length?`<div class="card stack"><h3>📚 今週の用語（タップで説明）</h3><div class="tp-grid">${E.terms.filter(t=>GLO()[t]).map(t=>`<button class="term big" data-term="${t}">${t}</button>`).join("")}</div></div>`:""}
+         <div class="row"><button class="btn accent" data-gtab="full">② くわしい解説と例文へ →</button></div>`}
+      else{
+        h=`${g.formula?`<div class="card stack"><div class="eyebrow">形（これだけ覚える）</div><pre class="formula">${esc(g.formula)}</pre></div>`:""}
+         <div class="card stack"><h3>ポイント</h3>${g.points.map((p,i)=>`<div class="point"><span class="n">${i+1}</span><p>${linkTerms(p,seen)}</p></div>`).join("")}</div>
+         <div class="card"><div class="spread" style="margin-bottom:4px"><h3>例文と解説</h3><button class="btn sm" id="playall">全部聞く</button></div>
+         ${g.examples.map(e=>`<div class="exline">${spkBtn(e.en)}<div class="t"><span class="en">${esc(e.en)}</span><span class="small">${esc(e.ja)}</span>${e.note?`<span class="exnote">💡 ${linkTerms(e.note,seen)}</span>`:""}</div></div>`).join("")}</div>
+         ${(g.mistakes||[]).length?`<div class="card stack"><h3>よくある間違い</h3>${g.mistakes.map(m=>`<div class="mistake"><div class="ng"><i>✕</i><span class="en">${esc(m.ng)}</span></div><div class="okk"><i>○</i><span class="en">${esc(m.ok)}</span>${spkBtn(m.ok)}</div><p class="small">${linkTerms(m.why,seen)}</p></div>`).join("")}</div>`:""}
+         ${g.tip?`<div class="tip"><b>コツ</b>　${esc(g.tip)}</div>`:""}
+         <p class="note">例文は1文ずつ聞いて、まねして3回声に出しましょう。わからないときは「先生と話す」→「今週の文法を教えてもらう」で、先生に質問できます。</p>`}
+      body.innerHTML=`<div class="stack">${head}${h}<div class="row"><button class="btn sm ghost" id="g-glo">📚 用語集</button></div>${finishBtn("理解できた・完了")}</div>`;
+      bindFinish(body,done);
+      body.querySelectorAll("[data-gtab]").forEach(b=>b.onclick=()=>{tab=b.dataset.gtab;draw();const L=$("#lesson");if(L)L.scrollTop=0});
+      body.querySelectorAll("[data-gq]").forEach(b=>b.onclick=()=>{const k=+b.dataset.gq;if(ans[k]!=null)return;ans[k]=+b.dataset.go;draw()});
+      body.querySelector("#g-glo").onclick=openGlossary;
+      const pa=body.querySelector("#playall");if(pa)pa.onclick=async()=>{const tk=++speakToken;for(const e of g.examples){if(tk!==speakToken)break;await speak(e.en);await sleep(900)}};
+    }
+    draw()})}
 
 /* --- カード（単語・復習 共通） --- */
 function lessonCards(cards,title,done,isReview){
@@ -1544,7 +1601,7 @@ function lessonCatch(done){let q=catchPick(5),i=0,phase=0,heard=null,cnt=[0,0,0]
 /* ============ 先生と話す（Claude のプロジェクト「英会話の先生」と音声で会話） ============
    先生のルールは docs/英会話の先生_プロジェクトの指示.md と同じ（TEACHER_RULES）。最初に1回だけプロジェクトの指示に貼ってもらう */
 const TEACHER_RULES="あなたは、岩田章弘（いわた あきひろ / Aki）さん専属の英会話の先生です。名前は「Emma 先生」。明るく、ていねいで、ほめ上手な先生として、音声でも文字でも会話の相手をします。\n\n## 生徒について\n- 岩田章弘さん。横浜出身。愛媛県大洲市で「あき鍼灸整骨院」を2018年10月に開業（スタッフ4名）。鍼灸師・柔道整復師。元アスレティックトレーナー。\n- 提携院への経営コンサル、予約・顧客管理システムの提供、美容と健康の事業、インドの企業向けのおもてなしコンサル、家族の酒店「小谷酒店」（1957年創業）の国際担当もしている。\n- インドの取引先と英語で仕事をするため、中学英語から1年でビジネス英語とプレゼンができるようになることを目指して、毎日3時間勉強している。\n- 学習アプリ「英語52週トレーニング」を使っている。アプリの「先生と話す」から、その日のレッスン内容（週・レベル・文法・単語・プレゼンの課題など）が貼り付けられて会話が始まる。\n\n## 話し方のルール\n1. 生徒のレベル（貼り付けられた CEFR）に合わせた、短くはっきりした英語で話す。A1〜A2 のうちは1文を短く、やさしい単語で。\n2. 質問は1回に1つだけ。生徒がたくさん話せるように、先生の話は短くする（先生3割・生徒7割）。\n3. 会話の途中では、まちがいを止めて直さない。通じないときだけ、やさしく言い直して確かめる（\"Do you mean ...?\"）。\n4. 生徒が日本語で話したり、\"How do you say ... in English?\" と聞いたら、英語での言い方を1つ教えて、その文をもう一度言ってもらってから会話を続ける。\n5. 生徒が詰まったら、ヒントを出す（最初の2〜3語、または選択肢を2つ）。\n6. よいところは具体的にほめる（\"Great use of 'because'!\" など）。\n7. インドの取引先との場面では、ときどきインドの人の役になり、インド英語らしい言い方（\"Kindly ...\", \"do the needful\", \"prepone\" など）も少し入れて、聞き取りに慣れさせる。\n8. 経歴や数字は、生徒が話したことと上の「生徒について」だけを使い、作り話をしない。\n\n## レッスンの流れ（「先生と話す」から始めたとき）\n貼り付けられた内容に「レッスンの種類」が書いてあるので、それに合わせる。決まっていないときは次の流れで約15分。\n1. あいさつと雑談（2分）\n2. 今週の文法と単語を使う質問（5分）\n3. 今週の場面のロールプレイ（5分）\n4. 今週のプレゼンの一部を言ってもらい、聞き手として1〜2個質問する（3分）\n\n## キャッチボール練習（レッスンの種類が「キャッチボール」のとき）\n- 目的は、生徒が「答える → ひとこと足す → 聞き返す」を毎回できるようになること。\n- 雑談や仕事の、答えやすい質問を1つずつする。生徒の答えには短く反応し（\"Oh, nice!\" \"Really?\"）、生徒が聞き返したら先生も1〜2文で答えて、次の質問につなげる。\n- 生徒が聞き返すのを忘れたら、やさしく \"Ask me back!\" と言う。答えが1語だけなら \"Tell me a little more.\" とうながす。\n- 1往復（生徒が答えて聞き返す）を1回と数え、何往復続いたかを覚えておく。\n- 終わったら、往復の回数と、生徒が使える聞き返しの言い方を5つ（英語と日本語）教える。\n\n## 終わり方\n生徒が「終わり」「finish」「That's all」と言ったら、会話をやめて、やさしい日本語で次をまとめる。\n1. よかったところ（2つ）\n2. 生徒が言った文で、直すと自然になるもの（最大5つ。「言った文 → 自然な文」と、短い理由）\n3. 今日の大事な表現（3つ。英語と日本語）\n4. 次のレッスンまでの小さな宿題（1つ）\n\n最後に、2〜4 をアプリの「会話ノート」に貼り付けられるよう、そのままコピーしやすい形で書く。";
-const TEACH_TYPES=[["today","今日のレッスン（おすすめ）","今週の文法・単語・場面とプレゼンを使って15分"],["catch","キャッチボール","答える → ひとこと足す → 聞き返す、で何往復続くか"],["present","今週のプレゼンを聞いてもらう","原稿を発表して、質問とアドバイスをもらう"],["india","インドの取引先の役で会話","商談・打ち合わせのロールプレイ"],["review","まちがえたところの復習","最近まちがえた文とひとこと英語を使って"],["free","自由に雑談","今日あったこと・仕事・趣味など"]];
+const TEACH_TYPES=[["today","今日のレッスン（おすすめ）","今週の文法・単語・場面とプレゼンを使って15分"],["catch","キャッチボール","答える → ひとこと足す → 聞き返す、で何往復続くか"],["grammar","今週の文法を教えてもらう","わからないところを日本語で質問しながら、やさしく練習"],["present","今週のプレゼンを聞いてもらう","原稿を発表して、質問とアドバイスをもらう"],["india","インドの取引先の役で会話","商談・打ち合わせのロールプレイ"],["review","まちがえたところの復習","最近まちがえた文とひとこと英語を使って"],["free","自由に雑談","今日あったこと・仕事・趣味など"]];
 function teacherRow(){return `<button class="teachbtn" data-act="teacher"><span class="ic">${IMG_HAVE.has("aki-online")?pic("aki-online","",""):"👩‍🏫"}</span><span><b>先生と話す</b><small>Claude の英会話の先生と、声でレッスン。今日の内容に合わせて話してくれます</small></span><span class="min">→</span></button>`}
 function recentMistakes(){const st=S.studied||{};return Object.keys(st).sort().slice(-3).flatMap(d=>Object.entries(st[d]).filter(([k,r])=>r<2).map(([k])=>k)).map(cardFromKey).filter(Boolean).map(c=>c.item.en).filter((x,i,a)=>x&&a.indexOf(x)===i).slice(0,6)}
 function teacherPrompt(type){const w=W(S.week),pw=PW(S.week),cefr=w?w.cefr:phaseOf(S.week).cefr;const t=TEACH_TYPES.find(x=>x[0]===type)||TEACH_TYPES[0];
@@ -1559,8 +1616,10 @@ function teacherPrompt(type){const w=W(S.week),pw=PW(S.week),cefr=w?w.cefr:phase
    (type==="review"||type==="today")&&hk.length?`今日のひとこと英語：${hk.join(" / ")}`:"",
    "",
    "（「英会話の先生」プロジェクトの外で使うとき：あなたは私の英会話の先生です。私のレベルに合わせた短い英語で、質問は1回に1つ。途中でまちがいは直さず、私が「終わり」と言ったら、よかった点・直した文（最大5つ）・大事な表現3つ・宿題1つを、やさしい日本語でまとめてください。）",
+   type==="grammar"&&w?`今週の文法のポイント：${w.grammar.points.slice(0,3).join(" ")}\n例文：${w.grammar.examples.slice(0,3).map(e=>e.en).join(" / ")}`:"",
+   type==="grammar"?"今週の文法を、中学生でもわかるやさしい日本語で、たとえ話を使って3〜5行で説明してください。むずかしい文法用語は使わないか、使うならすぐにやさしく言いかえてください。そのあと、日本語の短い文を1つずつ出して私に英語で言わせ、やさしく直してください（5問）。私が日本語で質問したら、日本語でていねいに答えてください。":"",
    type==="catch"?`練習中の聞き返し表現：${HK().filter(h=>h.id>200).slice(0,8).map(h=>h.ans[0].en).join(" / ")}`:"",
-   type==="catch"?"Let's practice conversation catch-ball. Ask me easy everyday and business questions one at a time. My goal is: answer + add one detail + ask you back. React briefly, answer my question in 1-2 sentences, then ask the next one. If I forget to ask you back, gently say \"Ask me back!\". Count our rallies. When I say \"終わり\", tell me the number of rallies and 5 natural ways to ask back, in simple Japanese.":type==="present"?"Please listen to my presentation first. When I say \"That's all\", ask me questions one at a time as an Indian business partner, then give feedback.":type==="india"?"Please play an Indian business partner and start a realistic business conversation with me about this week's scene.":"Please start the lesson now with a short, friendly greeting in English."].filter(x=>x!=="").join("\n")}
+   type==="grammar"?"":type==="catch"?"Let's practice conversation catch-ball. Ask me easy everyday and business questions one at a time. My goal is: answer + add one detail + ask you back. React briefly, answer my question in 1-2 sentences, then ask the next one. If I forget to ask you back, gently say \"Ask me back!\". Count our rallies. When I say \"終わり\", tell me the number of rallies and 5 natural ways to ask back, in simple Japanese.":type==="present"?"Please listen to my presentation first. When I say \"That's all\", ask me questions one at a time as an Indian business partner, then give feedback.":type==="india"?"Please play an Indian business partner and start a realistic business conversation with me about this week's scene.":"Please start the lesson now with a short, friendly greeting in English."].filter(x=>x!=="").join("\n")}
 function openTeacher(){let type="today";
   openLesson("先生と話す","",()=>"",body=>{
     function draw(){const setup=!S.settings.teacherSet;const url=S.settings.teacherUrl||"";
